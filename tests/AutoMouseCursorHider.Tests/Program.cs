@@ -55,6 +55,12 @@ Run("runtime hides and shows exactly once", () =>
     Equal(1, cursor.ShowCount);
 });
 
+Run("startup command quotes a path containing spaces", () =>
+{
+    Equal("\"C:\\Program Files\\Cursor Tools\\AutoMouseCursorHider.exe\"",
+        StartupManager.BuildRunCommand(@"C:\Program Files\Cursor Tools\AutoMouseCursorHider.exe"));
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
