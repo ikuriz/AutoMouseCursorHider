@@ -40,6 +40,21 @@ Run("rejects invalid delay values and conflicting commands", () =>
     False(CommandLine.TryParse(["--help", "--help"], out _, out _));
 });
 
+Run("runtime hides and shows exactly once", () =>
+{
+    var cursor = new FakeCursorController();
+    var runtime = new CursorRuntime(new CursorStateMachine(TimeSpan.FromSeconds(1)), cursor);
+
+    runtime.ProcessSample(new CursorPosition(1, 1), TimeSpan.Zero);
+    runtime.ProcessSample(new CursorPosition(1, 1), TimeSpan.FromSeconds(1));
+    runtime.ProcessSample(new CursorPosition(1, 1), TimeSpan.FromSeconds(1.1));
+    runtime.ProcessSample(new CursorPosition(2, 1), TimeSpan.FromSeconds(1.2));
+    runtime.Restore();
+
+    Equal(1, cursor.HideCount);
+    Equal(1, cursor.ShowCount);
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
@@ -78,4 +93,14 @@ void False(bool value)
     {
         throw new InvalidOperationException("Expected false.");
     }
+}
+
+sealed class FakeCursorController : ICursorController
+{
+    public int HideCount { get; private set; }
+    public int ShowCount { get; private set; }
+
+    public CursorPosition GetPosition() => new(0, 0);
+    public void Hide() => HideCount++;
+    public void Show() => ShowCount++;
 }

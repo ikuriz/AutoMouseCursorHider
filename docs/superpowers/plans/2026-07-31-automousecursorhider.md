@@ -61,7 +61,7 @@ Append these entries to .gitignore, preserving the existing .worktrees/ entry:
     publish/
     TestResults/
 
-Create the app project with TargetFramework net8.0-windows, OutputType WinExe, nullable and implicit usings enabled, PublishAot true, InvariantGlobalization true, OptimizationPreference Size, and StripSymbols true. Create an executable test project targeting net8.0-windows that project-references the app project.
+Create the app project with TargetFramework net8.0-windows, OutputType WinExe, nullable and implicit usings enabled, AllowUnsafeBlocks true, PublishAot true, InvariantGlobalization true, OptimizationPreference Size, and StripSymbols true. Create an executable test project targeting net8.0-windows that project-references the app project.
 
 Create an empty `Program.Main` entry point so the app project can compile while the state-machine test is red.
 
@@ -193,7 +193,7 @@ Create:
 
 ProcessSample maps only Hide and Show actions to the controller. Restore applies its action only once.
 
-In WindowsCursorController.cs, use source-generated P/Invoke declarations for user32.dll GetCursorPos and ShowCursor. GetPosition converts a private native POINT to CursorPosition and throws Win32Exception(Marshal.GetLastWin32Error()) on failure. Hide calls ShowCursor(false) once; Show calls ShowCursor(true) once.
+In WindowsCursorController.cs, mark both WindowsCursorController and its nested NativeMethods class partial, then use source-generated P/Invoke declarations for user32.dll GetCursorPos and ShowCursor. GetPosition converts a private native POINT to CursorPosition and throws Win32Exception(Marshal.GetLastWin32Error()) on failure. Hide calls ShowCursor(false) once; Show calls ShowCursor(true) once.
 
 - [ ] **Step 4: Verify tests and build.**
 
