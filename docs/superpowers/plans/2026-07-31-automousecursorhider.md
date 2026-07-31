@@ -363,4 +363,3 @@ Run the published EXE with --delay 1. After 1.2 seconds without movement verify 
 
     git add README.md
     git commit -m "docs: explain cursor hider usage"
-
