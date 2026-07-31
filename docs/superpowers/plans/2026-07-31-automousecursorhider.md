@@ -40,7 +40,7 @@
 
 **Files:**
 
-- Create: .gitignore
+- Modify: .gitignore
 - Create: src/AutoMouseCursorHider/AutoMouseCursorHider.csproj
 - Create: src/AutoMouseCursorHider/CursorStateMachine.cs
 - Create: tests/AutoMouseCursorHider.Tests/AutoMouseCursorHider.Tests.csproj
@@ -53,7 +53,7 @@
 
 - [ ] **Step 1: Write the failing test and project metadata.**
 
-Create .gitignore with these entries:
+Append these entries to .gitignore, preserving the existing .worktrees/ entry:
 
     bin/
     obj/
@@ -158,7 +158,7 @@ Expected: exit code 0 and four PASS lines.
 **Interfaces:**
 
 - Consumes: Task 1 state types.
-- Produces: ICursorController and CursorRuntime with ProcessSample, SetDelay, and Restore.
+- Produces: ICursorController and CursorRuntime with ProcessSample and Restore.
 
 - [ ] **Step 1: Write a failing runtime test using a fake controller.**
 
@@ -185,11 +185,10 @@ Create:
     {
         public CursorRuntime(CursorStateMachine state, ICursorController cursor);
         public void ProcessSample(CursorPosition position, TimeSpan now);
-        public void SetDelay(TimeSpan delay);
         public void Restore();
     }
 
-ProcessSample maps only Hide and Show actions to the controller. SetDelay replaces the state machine, causing the next sample to begin a fresh interval. Restore applies its action only once.
+ProcessSample maps only Hide and Show actions to the controller. Restore applies its action only once.
 
 In WindowsCursorController.cs, use source-generated P/Invoke declarations for user32.dll GetCursorPos and ShowCursor. GetPosition converts a private native POINT to CursorPosition and throws Win32Exception(Marshal.GetLastWin32Error()) on failure. Hide calls ShowCursor(false) once; Show calls ShowCursor(true) once.
 
@@ -291,11 +290,11 @@ Create a runtime with 1-second delay, process a first sample at 0 seconds, call 
 
 Run: dotnet run --project tests/AutoMouseCursorHider.Tests/AutoMouseCursorHider.Tests.csproj
 
-Expected: the new test fails until SetDelay replaces the existing state machine.
+Expected: compilation fails because SetDelay does not yet exist.
 
 - [ ] **Step 3: Correct SetDelay and implement Program.Main.**
 
-Implement this ordered flow:
+First add CursorRuntime.SetDelay(TimeSpan delay), which replaces the state machine so its next sample establishes a fresh idle interval. Then implement this ordered flow:
 
     parse arguments
     → persist/signal an optional --delay
