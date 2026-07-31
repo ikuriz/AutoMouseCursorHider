@@ -61,6 +61,19 @@ Run("startup command quotes a path containing spaces", () =>
         StartupManager.BuildRunCommand(@"C:\Program Files\Cursor Tools\AutoMouseCursorHider.exe"));
 });
 
+Run("new delay starts a fresh idle interval", () =>
+{
+    var cursor = new FakeCursorController();
+    var runtime = new CursorRuntime(new CursorStateMachine(TimeSpan.FromSeconds(1)), cursor);
+
+    runtime.ProcessSample(new CursorPosition(4, 4), TimeSpan.Zero);
+    runtime.SetDelay(TimeSpan.FromSeconds(2));
+    runtime.ProcessSample(new CursorPosition(4, 4), TimeSpan.FromSeconds(1));
+    Equal(0, cursor.HideCount);
+    runtime.ProcessSample(new CursorPosition(4, 4), TimeSpan.FromSeconds(3));
+    Equal(1, cursor.HideCount);
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)

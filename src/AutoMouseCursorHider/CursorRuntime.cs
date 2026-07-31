@@ -9,7 +9,7 @@ public interface ICursorController
 
 public sealed class CursorRuntime
 {
-    private readonly CursorStateMachine _state;
+    private CursorStateMachine _state;
     private readonly ICursorController _cursor;
 
     public CursorRuntime(CursorStateMachine state, ICursorController cursor)
@@ -21,6 +21,11 @@ public sealed class CursorRuntime
     public void ProcessSample(CursorPosition position, TimeSpan now)
     {
         Apply(_state.Observe(position, now));
+    }
+
+    public void SetDelay(TimeSpan delay)
+    {
+        _state = new CursorStateMachine(delay);
     }
 
     public void Restore()
