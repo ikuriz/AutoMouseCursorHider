@@ -42,6 +42,7 @@
 
 - Modify: .gitignore
 - Create: src/AutoMouseCursorHider/AutoMouseCursorHider.csproj
+- Create: src/AutoMouseCursorHider/Program.cs
 - Create: src/AutoMouseCursorHider/CursorStateMachine.cs
 - Create: tests/AutoMouseCursorHider.Tests/AutoMouseCursorHider.Tests.csproj
 - Create: tests/AutoMouseCursorHider.Tests/Program.cs
@@ -61,6 +62,8 @@ Append these entries to .gitignore, preserving the existing .worktrees/ entry:
     TestResults/
 
 Create the app project with TargetFramework net8.0-windows, OutputType WinExe, nullable and implicit usings enabled, PublishAot true, InvariantGlobalization true, OptimizationPreference Size, and StripSymbols true. Create an executable test project targeting net8.0-windows that project-references the app project.
+
+Create an empty `Program.Main` entry point so the app project can compile while the state-machine test is red.
 
 In the test runner, add Run, Equal, True, and False assertion helpers and this test:
 
