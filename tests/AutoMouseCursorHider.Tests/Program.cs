@@ -14,6 +14,32 @@ Run("hides at threshold and shows on movement", () =>
     Equal(CursorAction.Show, machine.Observe(new CursorPosition(101, 200), TimeSpan.FromSeconds(3.2)));
 });
 
+Run("parses an invariant-culture delay", () =>
+{
+    True(CommandLine.TryParse(["--delay", "2.5"], out var command, out _));
+    Equal(AppCommandKind.Run, command.Kind);
+    Equal(TimeSpan.FromMilliseconds(2500), command.Delay!.Value);
+});
+
+Run("allows a delay while installing startup", () =>
+{
+    True(CommandLine.TryParse(["--startup", "--delay", "5"], out var command, out _));
+    Equal(AppCommandKind.Startup, command.Kind);
+    Equal(TimeSpan.FromSeconds(5), command.Delay!.Value);
+});
+
+Run("rejects invalid delay values and conflicting commands", () =>
+{
+    False(CommandLine.TryParse(["--delay"], out _, out _));
+    False(CommandLine.TryParse(["--delay", "0.09"], out _, out _));
+    False(CommandLine.TryParse(["--delay", "3600.1"], out _, out _));
+    False(CommandLine.TryParse(["--delay", "NaN"], out _, out _));
+    False(CommandLine.TryParse(["--stop", "--startup"], out _, out _));
+    False(CommandLine.TryParse(["--stop", "--delay", "2"], out _, out _));
+    False(CommandLine.TryParse(["--unknown"], out _, out _));
+    False(CommandLine.TryParse(["--help", "--help"], out _, out _));
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
@@ -35,5 +61,21 @@ void Equal<T>(T expected, T actual)
     if (!EqualityComparer<T>.Default.Equals(expected, actual))
     {
         throw new InvalidOperationException($"Expected {expected}, got {actual}.");
+    }
+}
+
+void True(bool value)
+{
+    if (!value)
+    {
+        throw new InvalidOperationException("Expected true.");
+    }
+}
+
+void False(bool value)
+{
+    if (value)
+    {
+        throw new InvalidOperationException("Expected false.");
     }
 }
