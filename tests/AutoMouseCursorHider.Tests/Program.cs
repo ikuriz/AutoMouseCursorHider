@@ -131,6 +131,16 @@ Run("settings validation accepts decimal delay and rejects unsafe values", () =>
     False(SettingsValidation.TryParseDelay("abc", out _, out _));
 });
 
+Run("single instance rejects a second lease", () =>
+{
+    var name = $"Local\\AutoMouseCursorHider.Tests.{Guid.NewGuid():N}";
+    True(SingleInstance.TryAcquire(name, out var first));
+    True(first is not null);
+    False(SingleInstance.TryAcquire(name, out var second));
+    Equal(null, second);
+    first!.Dispose();
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)

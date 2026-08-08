@@ -1,50 +1,39 @@
 # AutoMouseCursorHider
 
-轻量级 Windows 鼠标光标隐藏器：鼠标静止一段时间后自动隐藏，移动后立即显示。
+轻量的 Windows 鼠标隐藏工具：鼠标静止达到设定时长后自动隐藏，移动后立即显示。
 
-## 使用
+## 使用方式
 
-发布后的 `AutoMouseCursorHider.exe` 默认无窗口运行，首次使用的静止时间为 3 秒。
+双击 `publish\AutoMouseCursorHider.exe` 后，程序默认不显示主窗口，只在系统托盘运行。
+
+右键托盘图标可以：
+
+- 打开设置；
+- 暂停或恢复隐藏；
+- 退出程序。
+
+设置窗口使用数字输入框和上下调节按钮，支持小数，范围为 `0.1–3600` 秒。也可以在设置窗口启用当前用户开机自启。
+
+命令行兼容操作：
 
 ```powershell
-.\publish\AutoMouseCursorHider.exe
 .\publish\AutoMouseCursorHider.exe --delay 5
-.\publish\AutoMouseCursorHider.exe --stop
-```
-
-- `--delay <秒数>`：将延迟设为 0.1–3600 秒。运行中的实例会在下一次最多 100 ms 的等待结束后重载；没有运行实例时会直接启动一个。
-- `--stop`：安全停止运行中的实例，并恢复本程序隐藏的光标。
-- `--help`：显示命令说明。
-
-## 开机自启
-
-```powershell
 .\publish\AutoMouseCursorHider.exe --startup
 .\publish\AutoMouseCursorHider.exe --no-startup
+.\publish\AutoMouseCursorHider.exe --stop
+.\publish\AutoMouseCursorHider.exe --help
 ```
 
-`--startup` 只在当前用户的注册表启动项中登记本 EXE，无需管理员权限；`--no-startup` 只删除本程序自己的启动项。移动或重命名 EXE 后，请重新运行 `--startup`。
+程序只修改当前用户配置和当前用户启动项，不联网、不提权、不收集数据。单实例运行，暂停、退出和异常路径都会尝试恢复鼠标显示。
 
-如果想同时设置启动延迟，可运行：
+## 构建与测试
+
+需要 .NET 8 SDK。Windows 发布使用 WinForms 自包含单文件配置：
 
 ```powershell
-.\publish\AutoMouseCursorHider.exe --startup --delay 5
+$env:DOTNET_CLI_HOME = "$PWD\.dotnet-home"
+dotnet run --project tests\AutoMouseCursorHider.Tests\AutoMouseCursorHider.Tests.csproj -p:RestoreIgnoreFailedSources=true
+dotnet publish src\AutoMouseCursorHider\AutoMouseCursorHider.csproj -c Release -r win-x64 --self-contained true -p:RestoreIgnoreFailedSources=true -o publish
 ```
 
-## 安全与资源占用
-
-- 不联网、不收集数据、不申请管理员权限。
-- 不创建服务、计划任务或后台注入；只使用 Windows 光标 API、当前用户注册表和命名事件。
-- 单实例运行，每 100 ms 读取一次鼠标位置，其余时间由等待句柄阻塞，避免忙等。
-- 程序在鼠标移动、`--stop` 或异常退出路径中都会尝试恢复自己隐藏的光标。
-
-## 构建
-
-构建机需要 .NET 8 SDK，以及 Visual Studio Build Tools（含 **Desktop development with C++** 工作负载）。
-
-```powershell
-dotnet run --project tests/AutoMouseCursorHider.Tests/AutoMouseCursorHider.Tests.csproj
-dotnet publish src/AutoMouseCursorHider/AutoMouseCursorHider.csproj -c Release -r win-x64 -o publish
-```
-
-发布完成后，可将 `publish\AutoMouseCursorHider.exe` 单独复制到任意固定目录使用。
+发布完成后，应用位于 `publish\AutoMouseCursorHider.exe`，可直接复制到未安装 .NET Runtime 的 Windows x64 电脑上运行。

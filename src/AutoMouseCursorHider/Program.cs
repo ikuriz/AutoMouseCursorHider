@@ -74,7 +74,6 @@ internal static partial class Program
             state.IsPaused,
             draft =>
             {
-                state.SetDelay(draft.Delay);
                 settings.Write(draft.Delay);
                 if (draft.StartupEnabled)
                 {
@@ -85,6 +84,7 @@ internal static partial class Program
                     startup.Remove();
                 }
 
+                state.SetDelay(draft.Delay);
                 return null;
             });
         using var context = new TrayApplicationContext(runtime, state, controller, lease, settings, signals, settingsFactory);
