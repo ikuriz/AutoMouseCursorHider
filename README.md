@@ -28,12 +28,12 @@
 
 ## 构建与测试
 
-需要 .NET 8 SDK。Windows 发布使用 WinForms 自包含单文件配置：
+需要 .NET 8 Desktop Runtime。为了避免把约 157 MB 的 Windows Desktop Runtime 打进应用，发布版本采用框架依赖单文件；目标电脑需要安装 .NET 8 Desktop Runtime。
 
 ```powershell
 $env:DOTNET_CLI_HOME = "$PWD\.dotnet-home"
 dotnet run --project tests\AutoMouseCursorHider.Tests\AutoMouseCursorHider.Tests.csproj -p:RestoreIgnoreFailedSources=true
-dotnet publish src\AutoMouseCursorHider\AutoMouseCursorHider.csproj -c Release -r win-x64 --self-contained true -p:RestoreIgnoreFailedSources=true -o publish
+dotnet publish src\AutoMouseCursorHider\AutoMouseCursorHider.csproj -c Release -r win-x64 --self-contained false -p:RestoreIgnoreFailedSources=true -o publish
 ```
 
-发布完成后，应用位于 `publish\AutoMouseCursorHider.exe`，可直接复制到未安装 .NET Runtime 的 Windows x64 电脑上运行。
+发布完成后，应用位于 `publish\AutoMouseCursorHider.exe`。EXE 本身约 188 KB；未安装 .NET 8 Desktop Runtime 的电脑需要先安装对应运行时。

@@ -26,17 +26,6 @@ public sealed partial class WindowsCursorController : ICursorController
         return new CursorPosition(point.X, point.Y);
     }
 
-    public uint GetLastInputTick()
-    {
-        var info = new LastInputInfo { Size = (uint)Marshal.SizeOf<LastInputInfo>() };
-        if (!NativeMethods.GetLastInputInfo(ref info))
-        {
-            throw new Win32Exception(Marshal.GetLastWin32Error());
-        }
-
-        return info.Time;
-    }
-
     public void Hide()
     {
         if (_hideCallCount != 0)
@@ -73,22 +62,11 @@ public sealed partial class WindowsCursorController : ICursorController
         public int Y;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct LastInputInfo
-    {
-        public uint Size;
-        public uint Time;
-    }
-
     private static partial class NativeMethods
     {
         [LibraryImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static partial bool GetCursorPos(out NativePoint point);
-
-        [LibraryImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool GetLastInputInfo(ref LastInputInfo info);
 
         [LibraryImport("user32.dll")]
         internal static partial int ShowCursor([MarshalAs(UnmanagedType.Bool)] bool show);

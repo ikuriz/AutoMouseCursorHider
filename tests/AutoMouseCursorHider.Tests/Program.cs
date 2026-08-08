@@ -208,7 +208,6 @@ sealed class FakeCursorController : ICursorController
     public int ShowCount { get; private set; }
 
     public CursorPosition GetPosition() => new(0, 0);
-    public uint GetLastInputTick() => 0;
     public void Hide() => HideCount++;
     public void Show() => ShowCount++;
 }

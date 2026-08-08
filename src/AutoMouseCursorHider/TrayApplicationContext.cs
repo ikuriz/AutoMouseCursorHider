@@ -16,14 +16,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly InstanceSignals _signals;
     private readonly object _runtimeGate = new();
     private readonly SynchronizationContext _uiContext;
-    private readonly Stopwatch _fallbackClock = Stopwatch.StartNew();
-    private TimeSpan _fallbackLastActivity;
-    private bool _fallbackInitialized;
-    private bool _hasInputTick;
-    private uint _lastInputTick;
-    private bool _hasPosition;
-    private CursorPosition _lastPosition;
-    private bool _resetIdleBaseline = true;
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
     private bool _disposed;
 
     public TrayApplicationContext(
@@ -42,13 +35,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _signals = signals ?? throw new ArgumentNullException(nameof(signals));
         _uiContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-        _state.StatusChanged += (_, _) =>
-        {
-            lock (_runtimeGate)
-            {
-                _resetIdleBaseline = true;
-            }
-        };
 
         var menu = new ContextMenuStrip();
         var settingsItem = new ToolStripMenuItem(TrayMenuLabels.Settings);
@@ -133,53 +119,31 @@ public sealed class TrayApplicationContext : ApplicationContext
                 return;
             }
 
-            var hasGlobalInput = true;
-            uint currentInputTick = 0;
-            try
-            {
-                currentInputTick = _cursor.GetLastInputTick();
-            }
-            catch (System.ComponentModel.Win32Exception)
-            {
-                hasGlobalInput = false;
-            }
-
-            var activityChanged = hasGlobalInput && _hasInputTick && currentInputTick != _lastInputTick;
-            _hasInputTick = hasGlobalInput;
-            _lastInputTick = currentInputTick;
-
             try
             {
                 var position = _cursor.GetPosition();
-                activityChanged |= _hasPosition && position != _lastPosition;
-                _hasPosition = true;
-                _lastPosition = position;
+                var action = _runtime.ObserveSample(position, _clock.Elapsed);
+                if (action != CursorAction.None)
+                {
+                    _uiContext.Post(_ => ApplyCursorAction(action), null);
+                }
             }
             catch (System.ComponentModel.Win32Exception)
             {
-                // The global input tick still provides a safe fallback when position sampling is unavailable.
+                // A desktop/API failure is retried on the next background tick.
             }
-
-            var idle = hasGlobalInput
-                ? (_resetIdleBaseline
-                    ? TimeSpan.Zero
-                    : TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - currentInputTick)))
-                : GetFallbackIdle(activityChanged);
-            _resetIdleBaseline = false;
-            _runtime.ProcessIdle(activityChanged, idle);
         }
     }
 
-    private TimeSpan GetFallbackIdle(bool activityChanged)
+    private void ApplyCursorAction(CursorAction action)
     {
-        if (!_fallbackInitialized || _resetIdleBaseline || activityChanged)
+        lock (_runtimeGate)
         {
-            _fallbackLastActivity = _fallbackClock.Elapsed;
-            _fallbackInitialized = true;
-            return TimeSpan.Zero;
+            if (!_disposed)
+            {
+                _runtime.ApplyAction(action);
+            }
         }
-
-        return _fallbackClock.Elapsed - _fallbackLastActivity;
     }
 
     private static void OpenSettings(Func<Form>? settingsFactory)
