@@ -162,6 +162,14 @@ Run("idle state hides from global inactivity and shows on activity", () =>
     Equal(1, cursor.ShowCount);
 });
 
+Run("system cursor replacement covers every interactive cursor", () =>
+{
+    Equal(13, SystemCursorIds.All.Length);
+    True(SystemCursorIds.All.Contains(SystemCursorIds.Normal));
+    True(SystemCursorIds.All.Contains(SystemCursorIds.IBeam));
+    True(SystemCursorIds.All.Contains(SystemCursorIds.Hand));
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)

@@ -68,7 +68,8 @@ internal static partial class Program
             return 0;
         }
 
-        var controller = new WindowsCursorController();
+        var cursorManager = new SystemCursorManager();
+        var controller = new SystemCursorController(cursorManager);
         var runtime = new CursorRuntime(new CursorStateMachine(settings.ReadOrDefault()), controller);
         var state = new RuntimeState(runtime, settings.ReadOrDefault());
         var startup = new StartupManager();
@@ -91,7 +92,8 @@ internal static partial class Program
                 state.SetDelay(draft.Delay);
                 return null;
             });
-        using var context = new TrayApplicationContext(runtime, state, controller, lease, settings, signals, settingsFactory);
+        using var mouseMonitor = new MouseActivityMonitor();
+        using var context = new TrayApplicationContext(runtime, state, mouseMonitor, lease, settings, signals, settingsFactory);
         Application.Run(context);
         return 0;
     }

@@ -10,19 +10,20 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly System.Threading.Timer _timer;
     private readonly RuntimeState _state;
     private readonly CursorRuntime _runtime;
-    private readonly ICursorController _cursor;
+    private readonly MouseActivityMonitor _mouseMonitor;
     private readonly IDisposable _instanceLease;
     private readonly DelaySettingsStore _settings;
     private readonly InstanceSignals _signals;
     private readonly object _runtimeGate = new();
     private readonly Control _dispatcher;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private TimeSpan _lastActivity;
     private bool _disposed;
 
     public TrayApplicationContext(
         CursorRuntime runtime,
         RuntimeState state,
-        ICursorController cursor,
+        MouseActivityMonitor mouseMonitor,
         IDisposable instanceLease,
         DelaySettingsStore settings,
         InstanceSignals signals,
@@ -30,12 +31,13 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         _state = state ?? throw new ArgumentNullException(nameof(state));
-        _cursor = cursor ?? throw new ArgumentNullException(nameof(cursor));
+        _mouseMonitor = mouseMonitor ?? throw new ArgumentNullException(nameof(mouseMonitor));
         _instanceLease = instanceLease ?? throw new ArgumentNullException(nameof(instanceLease));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _signals = signals ?? throw new ArgumentNullException(nameof(signals));
         _dispatcher = new Control();
         _ = _dispatcher.Handle;
+        _mouseMonitor.Activity += OnMouseActivity;
 
         var menu = new ContextMenuStrip();
         var settingsItem = new ToolStripMenuItem(TrayMenuLabels.Settings);
@@ -120,29 +122,21 @@ public sealed class TrayApplicationContext : ApplicationContext
                 return;
             }
 
-            try
-            {
-                var position = _cursor.GetPosition();
-                var action = _runtime.ObserveSample(position, _clock.Elapsed);
-                if (action != CursorAction.None)
-                {
-                    _dispatcher.BeginInvoke(new Action(() => ApplyCursorAction(action)));
-                }
-            }
-            catch (System.ComponentModel.Win32Exception)
-            {
-                // A desktop/API failure is retried on the next background tick.
-            }
+            _runtime.ProcessIdle(false, _clock.Elapsed - _lastActivity);
         }
     }
 
-    private void ApplyCursorAction(CursorAction action)
+    private void OnMouseActivity()
     {
         lock (_runtimeGate)
         {
             if (!_disposed)
             {
-                _runtime.ApplyAction(action);
+                _lastActivity = _clock.Elapsed;
+                if (!_state.IsPaused)
+                {
+                    _runtime.ProcessIdle(true, TimeSpan.Zero);
+                }
             }
         }
     }
@@ -176,6 +170,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
             _dispatcher.Dispose();
+            _mouseMonitor.Dispose();
             _instanceLease.Dispose();
         }
 
