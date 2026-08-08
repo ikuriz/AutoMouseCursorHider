@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace AutoMouseCursorHider;
@@ -60,46 +59,17 @@ internal static partial class Program
 
     private static int Run(DelaySettingsStore settings, InstanceSignals signals)
     {
-        using var instance = new Mutex(initiallyOwned: true, InstanceMutexName, out var createdNew);
-        if (!createdNew)
+        if (!SingleInstance.TryAcquire(InstanceMutexName, out var lease) || lease is null)
         {
             return 0;
         }
 
-        try
-        {
-            var controller = new WindowsCursorController();
-            var runtime = new CursorRuntime(new CursorStateMachine(settings.ReadOrDefault()), controller);
-            var stopwatch = Stopwatch.StartNew();
-            var waitHandles = new[] { signals.Stop, signals.Reload };
-
-            try
-            {
-                while (true)
-                {
-                    runtime.ProcessSample(controller.GetPosition(), stopwatch.Elapsed);
-
-                    var waitResult = WaitHandle.WaitAny(waitHandles, 100);
-                    if (waitResult == 0)
-                    {
-                        return 0;
-                    }
-
-                    if (waitResult == 1)
-                    {
-                        runtime.SetDelay(settings.ReadOrDefault());
-                    }
-                }
-            }
-            finally
-            {
-                runtime.Restore();
-            }
-        }
-        finally
-        {
-            instance.ReleaseMutex();
-        }
+        var controller = new WindowsCursorController();
+        var runtime = new CursorRuntime(new CursorStateMachine(settings.ReadOrDefault()), controller);
+        var state = new RuntimeState(runtime, settings.ReadOrDefault());
+        using var context = new TrayApplicationContext(runtime, state, controller, lease, settings, signals);
+        Application.Run(context);
+        return 0;
     }
 
     private static int Report(string message, int exitCode)

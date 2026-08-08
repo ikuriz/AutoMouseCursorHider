@@ -113,6 +113,14 @@ Run("runtime state changes delay and starts a fresh interval", () =>
     Equal(1, cursor.HideCount);
 });
 
+Run("tray menu stays compact and changes pause label", () =>
+{
+    Equal("打开设置", TrayMenuLabels.Settings);
+    Equal("退出", TrayMenuLabels.Exit);
+    Equal("暂停", TrayMenuLabels.Pause(false));
+    Equal("恢复", TrayMenuLabels.Pause(true));
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
