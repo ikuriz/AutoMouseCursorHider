@@ -81,6 +81,38 @@ Run("cursor visibility math compensates for an existing display count", () =>
     Equal(4, CursorVisibilityMath.HideCallsForDisplayCount(3));
 });
 
+Run("runtime state pause and resume reset visibility", () =>
+{
+    var cursor = new FakeCursorController();
+    var runtime = new CursorRuntime(new CursorStateMachine(TimeSpan.FromSeconds(1)), cursor);
+    var state = new RuntimeState(runtime, TimeSpan.FromSeconds(1));
+
+    runtime.ProcessSample(new CursorPosition(10, 10), TimeSpan.Zero);
+    runtime.ProcessSample(new CursorPosition(10, 10), TimeSpan.FromSeconds(1));
+    state.Pause();
+    Equal(true, state.IsPaused);
+    Equal(1, cursor.ShowCount);
+
+    state.Resume();
+    Equal(false, state.IsPaused);
+    runtime.ProcessSample(new CursorPosition(10, 10), TimeSpan.FromSeconds(1.1));
+    Equal(1, cursor.HideCount);
+});
+
+Run("runtime state changes delay and starts a fresh interval", () =>
+{
+    var cursor = new FakeCursorController();
+    var runtime = new CursorRuntime(new CursorStateMachine(TimeSpan.FromSeconds(1)), cursor);
+    var state = new RuntimeState(runtime, TimeSpan.FromSeconds(1));
+
+    runtime.ProcessSample(new CursorPosition(20, 20), TimeSpan.Zero);
+    state.SetDelay(TimeSpan.FromSeconds(2));
+    runtime.ProcessSample(new CursorPosition(20, 20), TimeSpan.FromSeconds(1));
+    Equal(0, cursor.HideCount);
+    runtime.ProcessSample(new CursorPosition(20, 20), TimeSpan.FromSeconds(3));
+    Equal(1, cursor.HideCount);
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
