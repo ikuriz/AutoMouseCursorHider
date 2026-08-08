@@ -40,6 +40,12 @@ public sealed class StartupManager
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "AutoMouseCursorHider";
 
+    public bool IsInstalled()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
+        return key?.GetValue(ValueName) is string value && !string.IsNullOrWhiteSpace(value);
+    }
+
     public void Install(string executablePath)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);

@@ -121,6 +121,16 @@ Run("tray menu stays compact and changes pause label", () =>
     Equal("恢复", TrayMenuLabels.Pause(true));
 });
 
+Run("settings validation accepts decimal delay and rejects unsafe values", () =>
+{
+    True(SettingsValidation.TryParseDelay("2.5", out var delay, out _));
+    Equal(TimeSpan.FromMilliseconds(2500), delay);
+    False(SettingsValidation.TryParseDelay("0", out _, out _));
+    False(SettingsValidation.TryParseDelay("3600.1", out _, out _));
+    False(SettingsValidation.TryParseDelay("NaN", out _, out _));
+    False(SettingsValidation.TryParseDelay("abc", out _, out _));
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)

@@ -67,7 +67,27 @@ internal static partial class Program
         var controller = new WindowsCursorController();
         var runtime = new CursorRuntime(new CursorStateMachine(settings.ReadOrDefault()), controller);
         var state = new RuntimeState(runtime, settings.ReadOrDefault());
-        using var context = new TrayApplicationContext(runtime, state, controller, lease, settings, signals);
+        var startup = new StartupManager();
+        Func<Form> settingsFactory = () => new SettingsForm(
+            state.Delay,
+            startup.IsInstalled(),
+            state.IsPaused,
+            draft =>
+            {
+                state.SetDelay(draft.Delay);
+                settings.Write(draft.Delay);
+                if (draft.StartupEnabled)
+                {
+                    startup.Install(Environment.ProcessPath ?? throw new InvalidOperationException("Executable path is unavailable."));
+                }
+                else
+                {
+                    startup.Remove();
+                }
+
+                return null;
+            });
+        using var context = new TrayApplicationContext(runtime, state, controller, lease, settings, signals, settingsFactory);
         Application.Run(context);
         return 0;
     }
