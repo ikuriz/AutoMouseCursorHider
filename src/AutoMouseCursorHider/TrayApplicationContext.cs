@@ -15,7 +15,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly DelaySettingsStore _settings;
     private readonly InstanceSignals _signals;
     private readonly object _runtimeGate = new();
-    private readonly SynchronizationContext _uiContext;
+    private readonly Control _dispatcher;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private bool _disposed;
 
@@ -34,7 +34,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         _instanceLease = instanceLease ?? throw new ArgumentNullException(nameof(instanceLease));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _signals = signals ?? throw new ArgumentNullException(nameof(signals));
-        _uiContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+        _dispatcher = new Control();
+        _ = _dispatcher.Handle;
 
         var menu = new ContextMenuStrip();
         var settingsItem = new ToolStripMenuItem(TrayMenuLabels.Settings);
@@ -105,7 +106,7 @@ public sealed class TrayApplicationContext : ApplicationContext
 
             if (_signals.Stop.WaitOne(0))
             {
-                _uiContext.Post(_ => ExitThread(), null);
+                _dispatcher.BeginInvoke(new Action(ExitThread));
                 return;
             }
 
@@ -125,7 +126,7 @@ public sealed class TrayApplicationContext : ApplicationContext
                 var action = _runtime.ObserveSample(position, _clock.Elapsed);
                 if (action != CursorAction.None)
                 {
-                    _uiContext.Post(_ => ApplyCursorAction(action), null);
+                    _dispatcher.BeginInvoke(new Action(() => ApplyCursorAction(action)));
                 }
             }
             catch (System.ComponentModel.Win32Exception)
@@ -174,6 +175,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             }
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
+            _dispatcher.Dispose();
             _instanceLease.Dispose();
         }
 
