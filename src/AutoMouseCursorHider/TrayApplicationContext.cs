@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace AutoMouseCursorHider;
@@ -6,13 +7,18 @@ namespace AutoMouseCursorHider;
 public sealed class TrayApplicationContext : ApplicationContext
 {
     private readonly NotifyIcon _notifyIcon;
-    private readonly System.Windows.Forms.Timer _timer;
+    private readonly System.Threading.Timer _timer;
     private readonly RuntimeState _state;
     private readonly CursorRuntime _runtime;
     private readonly ICursorController _cursor;
     private readonly IDisposable _instanceLease;
     private readonly DelaySettingsStore _settings;
     private readonly InstanceSignals _signals;
+    private readonly object _runtimeGate = new();
+    private readonly SynchronizationContext _uiContext;
+    private readonly Stopwatch _fallbackClock = Stopwatch.StartNew();
+    private TimeSpan _fallbackLastActivity;
+    private bool _fallbackInitialized;
     private bool _hasInputTick;
     private uint _lastInputTick;
     private bool _hasPosition;
@@ -35,7 +41,14 @@ public sealed class TrayApplicationContext : ApplicationContext
         _instanceLease = instanceLease ?? throw new ArgumentNullException(nameof(instanceLease));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _signals = signals ?? throw new ArgumentNullException(nameof(signals));
-        _state.StatusChanged += (_, _) => _resetIdleBaseline = true;
+        _uiContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+        _state.StatusChanged += (_, _) =>
+        {
+            lock (_runtimeGate)
+            {
+                _resetIdleBaseline = true;
+            }
+        };
 
         var menu = new ContextMenuStrip();
         var settingsItem = new ToolStripMenuItem(TrayMenuLabels.Settings);
@@ -65,13 +78,16 @@ public sealed class TrayApplicationContext : ApplicationContext
         settingsItem.Click += (_, _) => OpenSettings(settingsFactory);
         pauseItem.Click += (_, _) =>
         {
-            if (_state.IsPaused)
+            lock (_runtimeGate)
             {
-                _state.Resume();
-            }
-            else
-            {
-                _state.Pause();
+                if (_state.IsPaused)
+                {
+                    _state.Resume();
+                }
+                else
+                {
+                    _state.Pause();
+                }
             }
 
             pauseItem.Text = TrayMenuLabels.Pause(_state.IsPaused);
@@ -79,51 +95,91 @@ public sealed class TrayApplicationContext : ApplicationContext
         };
         exitItem.Click += (_, _) => ExitThread();
 
-        _timer = new System.Windows.Forms.Timer { Interval = 100 };
-        _timer.Tick += (_, _) => Tick();
-        _timer.Start();
+        _timer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                Tick();
+            }
+            catch (Exception)
+            {
+                // A transient desktop/API failure must not terminate the tray process.
+            }
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
     }
 
     private void Tick()
     {
-        if (_signals.Stop.WaitOne(0))
+        lock (_runtimeGate)
         {
-            ExitThread();
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (_signals.Stop.WaitOne(0))
+            {
+                _uiContext.Post(_ => ExitThread(), null);
+                return;
+            }
+
+            if (_signals.Reload.WaitOne(0))
+            {
+                _state.SetDelay(_settings.ReadOrDefault());
+            }
+
+            if (_state.IsPaused)
+            {
+                return;
+            }
+
+            var hasGlobalInput = true;
+            uint currentInputTick = 0;
+            try
+            {
+                currentInputTick = _cursor.GetLastInputTick();
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                hasGlobalInput = false;
+            }
+
+            var activityChanged = hasGlobalInput && _hasInputTick && currentInputTick != _lastInputTick;
+            _hasInputTick = hasGlobalInput;
+            _lastInputTick = currentInputTick;
+
+            try
+            {
+                var position = _cursor.GetPosition();
+                activityChanged |= _hasPosition && position != _lastPosition;
+                _hasPosition = true;
+                _lastPosition = position;
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                // The global input tick still provides a safe fallback when position sampling is unavailable.
+            }
+
+            var idle = hasGlobalInput
+                ? (_resetIdleBaseline
+                    ? TimeSpan.Zero
+                    : TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - currentInputTick)))
+                : GetFallbackIdle(activityChanged);
+            _resetIdleBaseline = false;
+            _runtime.ProcessIdle(activityChanged, idle);
+        }
+    }
+
+    private TimeSpan GetFallbackIdle(bool activityChanged)
+    {
+        if (!_fallbackInitialized || _resetIdleBaseline || activityChanged)
+        {
+            _fallbackLastActivity = _fallbackClock.Elapsed;
+            _fallbackInitialized = true;
+            return TimeSpan.Zero;
         }
 
-        if (_signals.Reload.WaitOne(0))
-        {
-            _state.SetDelay(_settings.ReadOrDefault());
-        }
-
-        if (_state.IsPaused)
-        {
-            return;
-        }
-
-        var currentInputTick = _cursor.GetLastInputTick();
-        var activityChanged = _hasInputTick && currentInputTick != _lastInputTick;
-        _hasInputTick = true;
-        _lastInputTick = currentInputTick;
-
-        try
-        {
-            var position = _cursor.GetPosition();
-            activityChanged |= _hasPosition && position != _lastPosition;
-            _hasPosition = true;
-            _lastPosition = position;
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            // The global input tick still provides a safe fallback when position sampling is unavailable.
-        }
-
-        var idle = _resetIdleBaseline
-            ? TimeSpan.Zero
-            : TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - currentInputTick));
-        _resetIdleBaseline = false;
-        _runtime.ProcessIdle(activityChanged, idle);
+        return _fallbackClock.Elapsed - _fallbackLastActivity;
     }
 
     private static void OpenSettings(Func<Form>? settingsFactory)
@@ -147,11 +203,13 @@ public sealed class TrayApplicationContext : ApplicationContext
         _disposed = true;
         if (disposing)
         {
-            _timer.Stop();
-            _timer.Dispose();
+            lock (_runtimeGate)
+            {
+                _timer.Dispose();
+                _runtime.Restore();
+            }
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
-            _runtime.Restore();
             _instanceLease.Dispose();
         }
 

@@ -24,15 +24,15 @@ public partial class SettingsForm
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
-        ClientSize = new Size(360, 210);
+        ClientSize = new Size(390, 210);
 
         _statusLabel = new Label { AutoSize = true, Location = new Point(20, 18), Text = "状态：运行中" };
-        _delayLabel = new Label { AutoSize = true, Location = new Point(20, 58), Text = "隐藏时长（秒）：" };
-        _delayInput = new TextBox { Location = new Point(145, 54), Size = new Size(150, 23), Text = "3" };
-        _decreaseButton = new Button { Location = new Point(300, 53), Size = new Size(25, 25), Text = "▼" };
-        _increaseButton = new Button { Location = new Point(325, 53), Size = new Size(25, 25), Text = "▲" };
+        _delayLabel = new Label { AutoSize = false, Location = new Point(20, 54), Size = new Size(145, 23), Text = "隐藏时长（秒）：", TextAlign = ContentAlignment.MiddleLeft };
+        _delayInput = new TextBox { Location = new Point(175, 54), Size = new Size(150, 23), Text = "3" };
+        _decreaseButton = new Button { Location = new Point(330, 53), Size = new Size(25, 25), Text = "▼" };
+        _increaseButton = new Button { Location = new Point(355, 53), Size = new Size(25, 25), Text = "▲" };
         _startupCheckBox = new CheckBox { AutoSize = true, Location = new Point(20, 95), Text = "开机自动启动" };
-        _errorLabel = new Label { AutoSize = false, ForeColor = Color.Firebrick, Location = new Point(20, 125), Size = new Size(320, 32) };
+        _errorLabel = new Label { AutoSize = false, ForeColor = Color.Firebrick, Location = new Point(20, 125), Size = new Size(350, 32) };
         _applyButton = new Button { DialogResult = DialogResult.None, Location = new Point(175, 170), Size = new Size(80, 25), Text = "应用" };
         _cancelButton = new Button { DialogResult = DialogResult.Cancel, Location = new Point(265, 170), Size = new Size(80, 25), Text = "取消" };
 
