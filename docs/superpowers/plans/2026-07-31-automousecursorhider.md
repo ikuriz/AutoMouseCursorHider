@@ -193,7 +193,7 @@ Create:
 
 ProcessSample maps only Hide and Show actions to the controller. Restore applies its action only once.
 
-In WindowsCursorController.cs, mark both WindowsCursorController and its nested NativeMethods class partial, then use source-generated P/Invoke declarations for user32.dll GetCursorPos and ShowCursor. GetPosition converts a private native POINT to CursorPosition and throws Win32Exception(Marshal.GetLastWin32Error()) on failure. Hide calls ShowCursor(false) once; Show calls ShowCursor(true) once.
+In WindowsCursorController.cs, mark both WindowsCursorController and its nested NativeMethods class partial, then use source-generated P/Invoke declarations for user32.dll GetCursorPos and ShowCursor. GetPosition converts a private native POINT to CursorPosition and throws Win32Exception(Marshal.GetLastWin32Error()) on failure. Hide calls ShowCursor(false) and repeats it according to the returned display count (capped at 256 calls); Show calls ShowCursor(true) exactly as many times as this process hid it.
 
 - [ ] **Step 4: Verify tests and build.**
 

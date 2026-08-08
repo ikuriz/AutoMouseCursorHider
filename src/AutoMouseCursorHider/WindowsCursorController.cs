@@ -3,8 +3,19 @@ using System.Runtime.InteropServices;
 
 namespace AutoMouseCursorHider;
 
+public static class CursorVisibilityMath
+{
+    public static int HideCallsForDisplayCount(int displayCount)
+    {
+        return displayCount == int.MaxValue ? int.MaxValue : Math.Max(0, displayCount + 1);
+    }
+}
+
 public sealed partial class WindowsCursorController : ICursorController
 {
+    private const int MaximumHideCalls = 256;
+    private int _hideCallCount;
+
     public CursorPosition GetPosition()
     {
         if (!NativeMethods.GetCursorPos(out var point))
@@ -17,12 +28,31 @@ public sealed partial class WindowsCursorController : ICursorController
 
     public void Hide()
     {
-        NativeMethods.ShowCursor(false);
+        if (_hideCallCount != 0)
+        {
+            return;
+        }
+
+        var displayCount = NativeMethods.ShowCursor(false);
+        _hideCallCount = 1;
+        var additionalCalls = Math.Min(
+            CursorVisibilityMath.HideCallsForDisplayCount(displayCount),
+            MaximumHideCalls - _hideCallCount);
+
+        for (var index = 0; index < additionalCalls; index++)
+        {
+            NativeMethods.ShowCursor(false);
+            _hideCallCount++;
+        }
     }
 
     public void Show()
     {
-        NativeMethods.ShowCursor(true);
+        while (_hideCallCount > 0)
+        {
+            NativeMethods.ShowCursor(true);
+            _hideCallCount--;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

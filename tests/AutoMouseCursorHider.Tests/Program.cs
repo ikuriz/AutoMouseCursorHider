@@ -74,6 +74,13 @@ Run("new delay starts a fresh idle interval", () =>
     Equal(1, cursor.HideCount);
 });
 
+Run("cursor visibility math compensates for an existing display count", () =>
+{
+    Equal(0, CursorVisibilityMath.HideCallsForDisplayCount(-1));
+    Equal(1, CursorVisibilityMath.HideCallsForDisplayCount(0));
+    Equal(4, CursorVisibilityMath.HideCallsForDisplayCount(3));
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
