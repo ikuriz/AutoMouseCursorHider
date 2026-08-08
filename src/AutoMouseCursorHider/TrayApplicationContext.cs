@@ -11,6 +11,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly RuntimeState _state;
     private readonly CursorRuntime _runtime;
     private readonly MouseActivityMonitor _mouseMonitor;
+    private readonly SystemCursorManager _cursorManager;
     private readonly IDisposable _instanceLease;
     private readonly DelaySettingsStore _settings;
     private readonly InstanceSignals _signals;
@@ -24,6 +25,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         CursorRuntime runtime,
         RuntimeState state,
         MouseActivityMonitor mouseMonitor,
+        SystemCursorManager cursorManager,
         IDisposable instanceLease,
         DelaySettingsStore settings,
         InstanceSignals signals,
@@ -32,6 +34,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         _state = state ?? throw new ArgumentNullException(nameof(state));
         _mouseMonitor = mouseMonitor ?? throw new ArgumentNullException(nameof(mouseMonitor));
+        _cursorManager = cursorManager ?? throw new ArgumentNullException(nameof(cursorManager));
         _instanceLease = instanceLease ?? throw new ArgumentNullException(nameof(instanceLease));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _signals = signals ?? throw new ArgumentNullException(nameof(signals));
@@ -50,11 +53,15 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = SystemIcons.Information,
             Text = "AutoMouseCursorHider",
+            BalloonTipTitle = "AutoMouseCursorHider",
+            BalloonTipText = "程序正在运行，可在此图标的右键菜单中打开设置。",
+            BalloonTipIcon = ToolTipIcon.Info,
             Visible = true,
             ContextMenuStrip = menu
         };
+        _dispatcher.BeginInvoke(new Action(() => _notifyIcon.ShowBalloonTip(2500)));
         _notifyIcon.MouseClick += (_, args) =>
         {
             if (args.Button == MouseButtons.Left)
@@ -123,6 +130,10 @@ public sealed class TrayApplicationContext : ApplicationContext
             }
 
             _runtime.ProcessIdle(false, _clock.Elapsed - _lastActivity);
+            if (_cursorManager.IsRestorePending)
+            {
+                _cursorManager.TryRestore();
+            }
         }
     }
 

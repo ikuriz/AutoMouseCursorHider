@@ -27,6 +27,10 @@ public sealed partial class SystemCursorManager
     private const uint SpiSetCursors = 0x0057;
     private const uint SpifSendChange = 0x0002;
     private bool _hidden;
+    private bool _restorePending;
+
+    public bool IsHidden => _hidden;
+    public bool IsRestorePending => _restorePending;
 
     public void Hide()
     {
@@ -45,6 +49,7 @@ public sealed partial class SystemCursorManager
             Marshal.Copy(andMask, 0, andHandle, andMask.Length);
             Marshal.Copy(xorMask, 0, xorHandle, xorMask.Length);
             _hidden = true;
+            _restorePending = false;
 
             foreach (var id in SystemCursorIds.All)
             {
@@ -64,19 +69,24 @@ public sealed partial class SystemCursorManager
         }
     }
 
-    public void Restore()
+    public void Restore() => TryRestore();
+
+    public bool TryRestore()
     {
-        if (!_hidden)
+        if (!_hidden && !_restorePending)
         {
-            return;
+            return true;
         }
 
         if (!NativeMethods.SystemParametersInfo(SpiSetCursors, 0, IntPtr.Zero, SpifSendChange))
         {
-            throw new InvalidOperationException("无法恢复系统光标。");
+            _restorePending = true;
+            return false;
         }
 
         _hidden = false;
+        _restorePending = false;
+        return true;
     }
 
     private static partial class NativeMethods

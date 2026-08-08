@@ -46,7 +46,14 @@ public sealed class MouseActivityMonitor : IDisposable
     {
         if (code >= 0 && wParam is (WmMouseMove or WmLButtonDown or WmRButtonDown or WmMButtonDown or WmMouseWheel))
         {
-            _current?.Activity?.Invoke();
+            try
+            {
+                _current?.Activity?.Invoke();
+            }
+            catch
+            {
+                // Never break the global mouse hook because restoration had a transient failure.
+            }
         }
 
         return NativeMethods.CallNextHookEx(nint.Zero, code, wParam, lParam);

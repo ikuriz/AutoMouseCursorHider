@@ -93,7 +93,7 @@ internal static partial class Program
                 return null;
             });
         using var mouseMonitor = new MouseActivityMonitor();
-        using var context = new TrayApplicationContext(runtime, state, mouseMonitor, lease, settings, signals, settingsFactory);
+        using var context = new TrayApplicationContext(runtime, state, mouseMonitor, cursorManager, lease, settings, signals, settingsFactory);
         Application.Run(context);
         return 0;
     }
