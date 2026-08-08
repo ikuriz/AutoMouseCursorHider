@@ -141,6 +141,27 @@ Run("single instance rejects a second lease", () =>
     first!.Dispose();
 });
 
+Run("delay spinner snaps from minimum to the half-second sequence", () =>
+{
+    Equal(0.1M, DelayStepPolicy.Down(0.5M));
+    Equal(0.5M, DelayStepPolicy.Up(0.1M));
+    Equal(1.0M, DelayStepPolicy.Up(0.5M));
+    Equal(0.5M, DelayStepPolicy.Down(1.0M));
+});
+
+Run("idle state hides from global inactivity and shows on activity", () =>
+{
+    var cursor = new FakeCursorController();
+    var runtime = new CursorRuntime(new CursorStateMachine(TimeSpan.FromSeconds(3)), cursor);
+
+    runtime.ProcessIdle(activityChanged: false, idle: TimeSpan.FromSeconds(2.9));
+    runtime.ProcessIdle(activityChanged: false, idle: TimeSpan.FromSeconds(3));
+    runtime.ProcessIdle(activityChanged: true, idle: TimeSpan.Zero);
+
+    Equal(1, cursor.HideCount);
+    Equal(1, cursor.ShowCount);
+});
+
 return failures == 0 ? 0 : 1;
 
 void Run(string name, Action test)
@@ -187,6 +208,7 @@ sealed class FakeCursorController : ICursorController
     public int ShowCount { get; private set; }
 
     public CursorPosition GetPosition() => new(0, 0);
+    public uint GetLastInputTick() => 0;
     public void Hide() => HideCount++;
     public void Show() => ShowCount++;
 }

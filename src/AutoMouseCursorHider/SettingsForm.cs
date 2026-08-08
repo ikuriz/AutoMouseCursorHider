@@ -12,10 +12,25 @@ public partial class SettingsForm : Form
     {
         _applySettings = applySettings ?? throw new ArgumentNullException(nameof(applySettings));
         InitializeComponent();
-        _delayInput.Value = (decimal)delay.TotalSeconds;
+        _delayInput.Text = delay.TotalSeconds.ToString("0.##", CultureInfo.CurrentCulture);
         _startupCheckBox.Checked = startupEnabled;
         _statusLabel.Text = paused ? "状态：已暂停" : "状态：运行中";
         _applyButton.Click += ApplyButton_Click;
+        _decreaseButton.Click += (_, _) => StepDelay(-1);
+        _increaseButton.Click += (_, _) => StepDelay(1);
+    }
+
+    private void StepDelay(int direction)
+    {
+        if (!SettingsValidation.TryParseDelay(_delayInput.Text, out var delay, out _))
+        {
+            delay = TimeSpan.FromSeconds(3);
+        }
+
+        var value = (decimal)delay.TotalSeconds;
+        var next = direction < 0 ? DelayStepPolicy.Down(value) : DelayStepPolicy.Up(value);
+        _delayInput.Text = next.ToString("0.##", CultureInfo.CurrentCulture);
+        _delayInput.SelectionStart = _delayInput.Text.Length;
     }
 
     private void ApplyButton_Click(object? sender, EventArgs e)

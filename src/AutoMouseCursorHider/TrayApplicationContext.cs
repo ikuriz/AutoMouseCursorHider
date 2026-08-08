@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace AutoMouseCursorHider;
@@ -14,7 +13,11 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly IDisposable _instanceLease;
     private readonly DelaySettingsStore _settings;
     private readonly InstanceSignals _signals;
-    private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private bool _hasInputTick;
+    private uint _lastInputTick;
+    private bool _hasPosition;
+    private CursorPosition _lastPosition;
+    private bool _resetIdleBaseline = true;
     private bool _disposed;
 
     public TrayApplicationContext(
@@ -32,6 +35,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         _instanceLease = instanceLease ?? throw new ArgumentNullException(nameof(instanceLease));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _signals = signals ?? throw new ArgumentNullException(nameof(signals));
+        _state.StatusChanged += (_, _) => _resetIdleBaseline = true;
 
         var menu = new ContextMenuStrip();
         var settingsItem = new ToolStripMenuItem(TrayMenuLabels.Settings);
@@ -98,7 +102,28 @@ public sealed class TrayApplicationContext : ApplicationContext
             return;
         }
 
-        _runtime.ProcessSample(_cursor.GetPosition(), _clock.Elapsed);
+        var currentInputTick = _cursor.GetLastInputTick();
+        var activityChanged = _hasInputTick && currentInputTick != _lastInputTick;
+        _hasInputTick = true;
+        _lastInputTick = currentInputTick;
+
+        try
+        {
+            var position = _cursor.GetPosition();
+            activityChanged |= _hasPosition && position != _lastPosition;
+            _hasPosition = true;
+            _lastPosition = position;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // The global input tick still provides a safe fallback when position sampling is unavailable.
+        }
+
+        var idle = _resetIdleBaseline
+            ? TimeSpan.Zero
+            : TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - currentInputTick));
+        _resetIdleBaseline = false;
+        _runtime.ProcessIdle(activityChanged, idle);
     }
 
     private static void OpenSettings(Func<Form>? settingsFactory)

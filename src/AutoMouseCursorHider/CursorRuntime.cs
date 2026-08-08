@@ -3,6 +3,7 @@ namespace AutoMouseCursorHider;
 public interface ICursorController
 {
     CursorPosition GetPosition();
+    uint GetLastInputTick();
     void Hide();
     void Show();
 }
@@ -21,6 +22,11 @@ public sealed class CursorRuntime
     public void ProcessSample(CursorPosition position, TimeSpan now)
     {
         Apply(_state.Observe(position, now));
+    }
+
+    public void ProcessIdle(bool activityChanged, TimeSpan idle)
+    {
+        Apply(_state.ObserveIdle(activityChanged, idle));
     }
 
     public void SetDelay(TimeSpan delay)

@@ -60,6 +60,28 @@ public sealed class CursorStateMachine
         return CursorAction.None;
     }
 
+    public CursorAction ObserveIdle(bool activityChanged, TimeSpan idle)
+    {
+        if (activityChanged)
+        {
+            if (_hidden)
+            {
+                _hidden = false;
+                return CursorAction.Show;
+            }
+
+            return CursorAction.None;
+        }
+
+        if (!_hidden && idle >= _delay)
+        {
+            _hidden = true;
+            return CursorAction.Hide;
+        }
+
+        return CursorAction.None;
+    }
+
     public CursorAction Restore()
     {
         if (!_hidden)

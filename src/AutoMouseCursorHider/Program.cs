@@ -17,6 +17,10 @@ internal static partial class Program
     {
         try
         {
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
             if (!CommandLine.TryParse(args, out var command, out var error))
             {
                 return Report(error, 2);
