@@ -19,6 +19,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly Control _dispatcher;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private TimeSpan _lastActivity;
+    private int _activityQueued;
     private bool _disposed;
 
     public TrayApplicationContext(
@@ -132,7 +133,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             _runtime.ProcessIdle(false, _clock.Elapsed - _lastActivity);
             if (_cursorManager.IsRestorePending)
             {
-                _cursorManager.TryRestore();
+                _cursorManager.RestoreAndRefresh();
             }
         }
     }
@@ -141,13 +142,38 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         lock (_runtimeGate)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                _lastActivity = _clock.Elapsed;
-                if (!_state.IsPaused)
-                {
-                    _runtime.ProcessIdle(true, TimeSpan.Zero);
-                }
+                return;
+            }
+
+            // Keep the idle timestamp lightweight inside the hook. The actual
+            // SPI_SETCURSORS call is posted to the WinForms message thread.
+            _lastActivity = _clock.Elapsed;
+            if (_state.IsPaused || !_cursorManager.IsHidden || Interlocked.Exchange(ref _activityQueued, 1) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                _dispatcher.BeginInvoke(new Action(HandleMouseActivity));
+            }
+            catch (InvalidOperationException)
+            {
+                Interlocked.Exchange(ref _activityQueued, 0);
+            }
+        }
+    }
+
+    private void HandleMouseActivity()
+    {
+        Interlocked.Exchange(ref _activityQueued, 0);
+        lock (_runtimeGate)
+        {
+            if (!_disposed && !_state.IsPaused)
+            {
+                _runtime.ProcessIdle(true, TimeSpan.Zero);
             }
         }
     }

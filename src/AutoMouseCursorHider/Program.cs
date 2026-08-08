@@ -69,6 +69,9 @@ internal static partial class Program
         }
 
         var cursorManager = new SystemCursorManager();
+        // A forced termination can leave the session-wide cursor replacement active.
+        // Always normalize the system cursors before starting the idle timer.
+        cursorManager.TryRestore();
         var controller = new SystemCursorController(cursorManager);
         var runtime = new CursorRuntime(new CursorStateMachine(settings.ReadOrDefault()), controller);
         var state = new RuntimeState(runtime, settings.ReadOrDefault());

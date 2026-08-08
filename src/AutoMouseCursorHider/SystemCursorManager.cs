@@ -71,6 +71,21 @@ public sealed partial class SystemCursorManager
 
     public void Restore() => TryRestore();
 
+    public bool RestoreAndRefresh()
+    {
+        if (!TryRestore())
+        {
+            return false;
+        }
+
+        if (NativeMethods.GetCursorPos(out var point))
+        {
+            NativeMethods.SetCursorPos(point.X, point.Y);
+        }
+
+        return true;
+    }
+
     public bool TryRestore()
     {
         if (!_hidden && !_restorePending)
@@ -98,9 +113,24 @@ public sealed partial class SystemCursorManager
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static partial bool SetSystemCursor(IntPtr cursor, uint id);
 
-        [LibraryImport("user32.dll", SetLastError = true)]
+        [LibraryImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static partial bool SystemParametersInfo(uint action, uint parameter, IntPtr value, uint flags);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static partial bool GetCursorPos(out Point point);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static partial bool SetCursorPos(int x, int y);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Point
+        {
+            public int X;
+            public int Y;
+        }
     }
 }
 
@@ -112,5 +142,5 @@ public sealed class SystemCursorController : ICursorController
 
     public CursorPosition GetPosition() => default;
     public void Hide() => _manager.Hide();
-    public void Show() => _manager.Restore();
+    public void Show() => _manager.RestoreAndRefresh();
 }
