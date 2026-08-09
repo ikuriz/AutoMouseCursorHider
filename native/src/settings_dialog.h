@@ -20,9 +20,11 @@ private:
     HWND _window = nullptr;
     HWND _edit = nullptr;
     HWND _upDown = nullptr;
+    HWND _enabled = nullptr;
     HWND _startup = nullptr;
     HFONT _bodyFont = nullptr;
     AppSettings* _settings = nullptr;
+    bool _autoHideChecked = true;
     bool _startupChecked = false;
     bool _accepted = false;
 };

@@ -13,6 +13,7 @@ namespace
 {
 constexpr wchar_t kSection[] = L"Settings";
 constexpr wchar_t kDelayKey[] = L"DelaySeconds";
+constexpr wchar_t kEnabledKey[] = L"Enabled";
 constexpr wchar_t kStartupKey[] = L"StartupEnabled";
 constexpr double kMinimumDelay = 0.1;
 constexpr double kMaximumDelay = 3600.0;
@@ -46,6 +47,7 @@ AppSettings ConfigStore::Load()
 {
     AppSettings settings;
     const auto path = Path();
+    settings.enabled = GetPrivateProfileIntW(kSection, kEnabledKey, 1, path.c_str()) != 0;
     wchar_t delayText[64]{};
     GetPrivateProfileStringW(kSection, kDelayKey, L"3.0", delayText, ARRAYSIZE(delayText), path.c_str());
     double delay = settings.delaySeconds;
@@ -70,7 +72,7 @@ bool ConfigStore::Save(const AppSettings& settings)
 
     std::wostringstream delay;
     delay << std::fixed << std::setprecision(3) << settings.delaySeconds;
-    return WritePrivateProfileStringW(kSection, kDelayKey, delay.str().c_str(), path.c_str()) &&
+    return WritePrivateProfileStringW(kSection, kEnabledKey, settings.enabled ? L"1" : L"0", path.c_str()) &&
+           WritePrivateProfileStringW(kSection, kDelayKey, delay.str().c_str(), path.c_str()) &&
            WritePrivateProfileStringW(kSection, kStartupKey, settings.startupEnabled ? L"1" : L"0", path.c_str());
 }
-

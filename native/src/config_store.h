@@ -4,6 +4,7 @@
 
 struct AppSettings
 {
+    bool enabled = true;
     double delaySeconds = 3.0;
     bool startupEnabled = false;
 };
@@ -18,4 +19,3 @@ public:
 private:
     static std::wstring Path();
 };
-

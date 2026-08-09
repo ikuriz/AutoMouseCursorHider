@@ -11,6 +11,7 @@ constexpr wchar_t kClassName[] = L"AutoMouseCursorHider.Native.Settings.v2";
 constexpr int kEditId = 5001;
 constexpr int kUpDownId = 5002;
 constexpr int kStartupId = 5003;
+constexpr int kEnabledId = 5007;
 }
 
 bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
@@ -92,7 +93,7 @@ bool SettingsDialog::ReadValue(HWND edit, double& value)
 
 void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
 {
-    const bool checkbox = draw.CtlID == kStartupId;
+    const bool checkbox = draw.CtlID == kStartupId || draw.CtlID == kEnabledId;
     const bool pressed = (draw.itemState & ODS_SELECTED) != 0;
     HBRUSH background = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
     FillRect(draw.hDC, &draw.rcItem, background);
@@ -103,7 +104,8 @@ void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
     {
         RECT box{draw.rcItem.left, draw.rcItem.top + 5, draw.rcItem.left + 22, draw.rcItem.top + 27};
         FrameRect(draw.hDC, &box, GetSysColorBrush(COLOR_GRAYTEXT));
-        if (_startupChecked)
+        if ((draw.CtlID == kEnabledId && _autoHideChecked) ||
+            (draw.CtlID == kStartupId && _startupChecked))
         {
             HPEN pen = CreatePen(PS_SOLID, 2, RGB(35, 110, 220));
             const auto oldPen = SelectObject(draw.hDC, pen);
@@ -117,7 +119,8 @@ void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
         text.left += 34;
         SetTextColor(draw.hDC, RGB(35, 40, 48));
         const auto oldFont = SelectObject(draw.hDC, _bodyFont);
-        DrawTextW(draw.hDC, L"Start with Windows", -1, &text, DT_SINGLELINE | DT_VCENTER);
+        DrawTextW(draw.hDC, draw.CtlID == kEnabledId ? L"Enable auto-hide" : L"Start with Windows",
+                  -1, &text, DT_SINGLELINE | DT_VCENTER);
         SelectObject(draw.hDC, oldFont);
         return;
     }
@@ -164,11 +167,15 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
     case WM_CREATE:
         {
             dialog->_edit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"3.0",
-                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 260, 72, 160, 40,
+                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 260, 120, 160, 40,
                                              window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kEditId)), nullptr, nullptr);
             dialog->_upDown = CreateWindowExW(0, UPDOWN_CLASSW, nullptr,
-                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 72, 32, 40,
+                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 120, 32, 40,
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
+            dialog->_enabled = CreateWindowExW(0, L"BUTTON", nullptr,
+                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
+                                                44, 72, 360, 42, window,
+                                                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kEnabledId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", nullptr,
                                                 WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
                                                 44, 185, 360, 42, window,
@@ -176,20 +183,21 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             HWND explanation = CreateWindowExW(0, L"STATIC", L"The mouse cursor hides after inactivity.", WS_CHILD | WS_VISIBLE,
                                                50, 27, 500, 32, window, nullptr, nullptr, nullptr);
             HWND label = CreateWindowExW(0, L"STATIC", L"Delay", WS_CHILD | WS_VISIBLE,
-                                         50, 82, 180, 34, window, nullptr, nullptr, nullptr);
+                                         50, 130, 180, 34, window, nullptr, nullptr, nullptr);
             HWND unit = CreateWindowExW(0, L"STATIC", L"seconds", WS_CHILD | WS_VISIBLE,
-                                        468, 82, 110, 34, window, nullptr, nullptr, nullptr);
+                                        468, 130, 110, 34, window, nullptr, nullptr, nullptr);
             HWND ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
                                       350, 245, 92, 44, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
             HWND cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
                                           452, 245, 92, 44, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
-            for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_startup, explanation, label, unit, ok, cancel})
+            for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_enabled, dialog->_startup, explanation, label, unit, ok, cancel})
             {
                 SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(dialog->_bodyFont), TRUE);
             }
             std::wostringstream text;
             text << std::fixed << std::setprecision(1) << dialog->_settings->delaySeconds;
             SetWindowTextW(dialog->_edit, text.str().c_str());
+            dialog->_autoHideChecked = dialog->_settings->enabled;
             dialog->_startupChecked = dialog->_settings->startupEnabled;
         }
         return 0;
@@ -226,10 +234,18 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         }
         break;
     case WM_COMMAND:
-        if (LOWORD(wParam) == kStartupId && HIWORD(wParam) == BN_CLICKED)
+        if ((LOWORD(wParam) == kStartupId || LOWORD(wParam) == kEnabledId) && HIWORD(wParam) == BN_CLICKED)
         {
-            dialog->_startupChecked = !dialog->_startupChecked;
-            InvalidateRect(dialog->_startup, nullptr, TRUE);
+            if (LOWORD(wParam) == kEnabledId)
+            {
+                dialog->_autoHideChecked = !dialog->_autoHideChecked;
+                InvalidateRect(dialog->_enabled, nullptr, TRUE);
+            }
+            else
+            {
+                dialog->_startupChecked = !dialog->_startupChecked;
+                InvalidateRect(dialog->_startup, nullptr, TRUE);
+            }
             return 0;
         }
         if (LOWORD(wParam) == IDOK)
@@ -241,6 +257,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                 return 0;
             }
             dialog->_settings->delaySeconds = delay;
+            dialog->_settings->enabled = dialog->_autoHideChecked;
             dialog->_settings->startupEnabled = dialog->_startupChecked;
             dialog->_accepted = true;
             DestroyWindow(window);

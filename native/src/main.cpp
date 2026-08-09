@@ -24,6 +24,7 @@ struct AppContext
     TrayController tray;
     SettingsDialog settingsDialog;
     AppSettings settings;
+    bool autoHideEnabled = true;
     bool paused = false;
 };
 
@@ -41,6 +42,12 @@ void HandleActivity(AppContext& app)
 void HandleTimer(AppContext& app)
 {
     const auto now = GetTickCount64();
+    if (!app.autoHideEnabled)
+    {
+        app.cursorManager.RestoreAndRefresh();
+        return;
+    }
+
     if (app.cursorManager.IsRestorePending())
     {
         app.cursorManager.RetryRestore();
@@ -120,6 +127,19 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                     }
                     else
                     {
+                        if (updated.enabled != app->autoHideEnabled)
+                        {
+                            app->autoHideEnabled = updated.enabled;
+                            if (app->autoHideEnabled)
+                            {
+                                app->cursorState.Resume(GetTickCount64());
+                            }
+                            else
+                            {
+                                app->cursorState.Pause();
+                                app->cursorManager.RestoreAndRefresh();
+                            }
+                        }
                         app->settings = updated;
                         app->cursorState.SetDelay(updated.delaySeconds);
                     }
@@ -178,6 +198,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.settings.startupEnabled = StartupRegistration::IsEnabled();
     app.cursorManager.RestoreAndRefresh();
     app.cursorState.SetDelay(app.settings.delaySeconds);
+    app.autoHideEnabled = app.settings.enabled;
+    if (!app.autoHideEnabled)
+    {
+        app.cursorState.Pause();
+    }
     app.cursorState.OnActivity(GetTickCount64());
     app.dispatcher = CreateWindowExW(
         0, kWindowClass, L"AutoMouseCursorHider", 0, 0, 0, 0, 0,
