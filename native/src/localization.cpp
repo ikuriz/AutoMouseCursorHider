@@ -13,7 +13,16 @@ bool IsChineseLocale()
     {
         return false;
     }
-    return std::towlower(locale[0]) == L'z' && std::towlower(locale[1]) == L'h' && locale[2] == L'-';
+    std::wstring name(locale);
+    for (auto& character : name)
+    {
+        character = static_cast<wchar_t>(std::towlower(character));
+    }
+
+    // Only use the Simplified Chinese table when Windows explicitly reports a
+    // Simplified script/region. Traditional Chinese currently falls back to English.
+    return name == L"zh-cn" || name == L"zh-sg" || name == L"zh-my" ||
+           name.find(L"-hans") != std::wstring::npos || name == L"zh-chs";
 }
 }
 
