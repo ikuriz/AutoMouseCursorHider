@@ -31,8 +31,8 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     HMONITOR monitor = MonitorFromPoint(cursorPoint, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo{sizeof(monitorInfo)};
     GetMonitorInfoW(monitor, &monitorInfo);
-    constexpr int width = 520;
-    constexpr int height = 300;
+    constexpr int width = 600;
+    constexpr int height = 360;
     const int x = monitorInfo.rcWork.left + ((monitorInfo.rcWork.right - monitorInfo.rcWork.left) - width) / 2;
     const int y = monitorInfo.rcWork.top + ((monitorInfo.rcWork.bottom - monitorInfo.rcWork.top) - height) / 2;
 
@@ -40,7 +40,7 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     _accepted = false;
     _window = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_APPWINDOW, kClassName,
                               L"AutoMouseCursorHider - Settings",
-                              WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+                              WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
                               x, y, width, height, nullptr, nullptr, klass.hInstance, this);
     if (_window == nullptr)
     {
@@ -48,6 +48,7 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
         return false;
     }
 
+    SetWindowTextW(_window, L"AutoMouseCursorHider - Settings");
     EnableWindow(owner, FALSE);
     ShowWindow(_window, SW_SHOW);
     UpdateWindow(_window);
@@ -144,7 +145,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         dialog = static_cast<SettingsDialog*>(create->lpCreateParams);
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(dialog));
         dialog->_window = window;
-        dialog->_bodyFont = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        dialog->_bodyFont = CreateFontW(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                                         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                                         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
         return TRUE;
@@ -159,23 +160,23 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
     case WM_CREATE:
         {
             dialog->_edit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"3.0",
-                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 220, 52, 135, 34,
+                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 260, 62, 160, 38,
                                              window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kEditId)), nullptr, nullptr);
             dialog->_upDown = CreateWindowExW(0, UPDOWN_CLASSW, nullptr,
-                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 355, 52, 30, 34,
+                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 62, 32, 38,
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", nullptr,
                                                 WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
-                                                44, 160, 300, 34, window,
+                                                44, 190, 330, 38, window,
                                                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kStartupId)), nullptr, nullptr);
             HWND label = CreateWindowExW(0, L"STATIC", L"Hide after", WS_CHILD | WS_VISIBLE,
-                                         48, 60, 150, 28, window, nullptr, nullptr, nullptr);
+                                         50, 72, 180, 32, window, nullptr, nullptr, nullptr);
             HWND unit = CreateWindowExW(0, L"STATIC", L"seconds", WS_CHILD | WS_VISIBLE,
-                                        400, 60, 100, 28, window, nullptr, nullptr, nullptr);
+                                        468, 72, 110, 32, window, nullptr, nullptr, nullptr);
             HWND ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                      300, 210, 86, 38, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
+                                      390, 270, 92, 42, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
             HWND cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                          400, 210, 86, 38, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+                                          492, 270, 92, 42, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
             for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_startup, label, unit, ok, cancel})
             {
                 SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(dialog->_bodyFont), TRUE);
@@ -191,7 +192,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         {
             PAINTSTRUCT paint{};
             HDC dc = BeginPaint(window, &paint);
-            RECT card{24, 22, 496, 132};
+            RECT card{24, 22, 576, 160};
             HBRUSH cardBrush = CreateSolidBrush(RGB(247, 248, 250));
             FillRect(dc, &card, cardBrush);
             DeleteObject(cardBrush);
@@ -257,4 +258,3 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
     }
     return DefWindowProcW(window, message, wParam, lParam);
 }
-
