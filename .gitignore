@@ -3,3 +3,5 @@ bin/
 obj/
 publish/
 TestResults/
+native/build/
+native/publish/
