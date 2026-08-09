@@ -22,6 +22,7 @@ add_executable(AutoMouseCursorHiderNative WIN32
     src/settings_dialog.h
     src/resource.h
     src/app.rc
+    src/app.manifest
 )
 
 target_compile_features(AutoMouseCursorHiderNative PRIVATE cxx_std_17)
@@ -31,7 +32,6 @@ target_link_options(AutoMouseCursorHiderNative PRIVATE /SUBSYSTEM:WINDOWS)
 target_link_libraries(AutoMouseCursorHiderNative PRIVATE Shell32 Comctl32)
 set_target_properties(AutoMouseCursorHiderNative PROPERTIES
     OUTPUT_NAME "AutoMouseCursorHider"
-    VS_DPI_AWARE "PerMonitor"
 )
 
 add_executable(CursorStateTests
