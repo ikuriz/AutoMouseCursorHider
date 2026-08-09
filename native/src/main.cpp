@@ -24,8 +24,6 @@ struct AppContext
     TrayController tray;
     SettingsDialog settingsDialog;
     AppSettings settings;
-    bool autoHideEnabled = true;
-    bool paused = false;
 };
 
 void HandleActivity(AppContext& app)
@@ -42,7 +40,7 @@ void HandleActivity(AppContext& app)
 void HandleTimer(AppContext& app)
 {
     const auto now = GetTickCount64();
-    if (!app.autoHideEnabled)
+    if (!app.settings.enabled)
     {
         app.cursorManager.RestoreAndRefresh();
         return;
@@ -96,12 +94,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         switch (LOWORD(wParam))
         {
         case TrayController::kPauseCommand:
-            app->paused = !app->paused;
-            // Keep the temporary tray pause state synchronized with the
-            // setting shown in the next Settings dialog.
-            app->autoHideEnabled = !app->paused;
-            app->settings.enabled = app->autoHideEnabled;
-            if (app->paused)
+            app->settings.enabled = !app->settings.enabled;
+            if (!app->settings.enabled)
             {
                 app->cursorState.Pause();
                 app->cursorManager.RestoreAndRefresh();
@@ -110,7 +104,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             {
                 app->cursorState.Resume(GetTickCount64());
             }
-            app->tray.SetPaused(app->paused);
+            ConfigStore::Save(app->settings);
+            app->tray.SetEnabled(app->settings.enabled);
             return 0;
         case TrayController::kExitCommand:
             DestroyWindow(window);
@@ -120,6 +115,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                 AppSettings updated = app->settings;
                 if (app->settingsDialog.ShowModal(window, updated))
                 {
+                    const bool oldEnabled = app->settings.enabled;
                     wchar_t executablePath[MAX_PATH]{};
                     GetModuleFileNameW(nullptr, executablePath, ARRAYSIZE(executablePath));
                     const bool startupChanged = updated.startupEnabled
@@ -133,11 +129,9 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                     }
                     else
                     {
-                        if (updated.enabled != app->autoHideEnabled)
+                        if (updated.enabled != oldEnabled)
                         {
-                            app->autoHideEnabled = updated.enabled;
-                            app->paused = !updated.enabled;
-                            if (app->autoHideEnabled)
+                            if (updated.enabled)
                             {
                                 app->cursorState.Resume(GetTickCount64());
                             }
@@ -147,14 +141,10 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                                 app->cursorManager.RestoreAndRefresh();
                             }
                         }
-                        else
-                        {
-                            app->paused = !app->autoHideEnabled;
-                        }
                         app->settings = updated;
                         app->cursorState.SetDelay(updated.delaySeconds);
                         app->tray.SetLanguage(Localization::Resolve(updated.language));
-                        app->tray.SetPaused(app->paused);
+                        app->tray.SetEnabled(app->settings.enabled);
                     }
                 }
             }
@@ -211,8 +201,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.settings.startupEnabled = StartupRegistration::IsEnabled();
     app.cursorManager.RestoreAndRefresh();
     app.cursorState.SetDelay(app.settings.delaySeconds);
-    app.autoHideEnabled = app.settings.enabled;
-    if (!app.autoHideEnabled)
+    if (!app.settings.enabled)
     {
         app.cursorState.Pause();
     }
@@ -221,7 +210,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         0, kWindowClass, L"AutoMouseCursorHider", 0, 0, 0, 0, 0,
         HWND_MESSAGE, nullptr, instance, &app);
     if (app.dispatcher == nullptr || !app.mouseMonitor.Install(app.dispatcher) ||
-        !app.tray.Create(app.dispatcher, Localization::Resolve(app.settings.language)))
+        !app.tray.Create(app.dispatcher, Localization::Resolve(app.settings.language), app.settings.enabled))
     {
         if (app.dispatcher != nullptr)
         {

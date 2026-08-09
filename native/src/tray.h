@@ -17,9 +17,9 @@ public:
     TrayController& operator=(const TrayController&) = delete;
     ~TrayController();
 
-    bool Create(HWND dispatcher, Language language);
+    bool Create(HWND dispatcher, Language language, bool enabled);
     void Remove();
-    void SetPaused(bool paused);
+    void SetEnabled(bool enabled);
     void SetLanguage(Language language);
     void HandleTrayMessage(LPARAM message);
 
@@ -32,6 +32,6 @@ private:
     HICON _icon = nullptr;
     NOTIFYICONDATAW _notify{};
     bool _created = false;
-    bool _paused = false;
+    bool _enabled = true;
     Language _language = Language::English;
 };

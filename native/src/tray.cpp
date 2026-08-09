@@ -5,7 +5,7 @@ TrayController::~TrayController()
     Remove();
 }
 
-bool TrayController::Create(HWND dispatcher, Language language)
+bool TrayController::Create(HWND dispatcher, Language language, bool enabled)
 {
     if (dispatcher == nullptr || _created)
     {
@@ -14,6 +14,7 @@ bool TrayController::Create(HWND dispatcher, Language language)
 
     _dispatcher = dispatcher;
     _language = language;
+    _enabled = enabled;
     _menu = CreatePopupMenu();
     _icon = LoadIconW(nullptr, IDI_INFORMATION);
     if (_menu == nullptr || _icon == nullptr)
@@ -23,7 +24,8 @@ bool TrayController::Create(HWND dispatcher, Language language)
     }
 
     AppendMenuW(_menu, MF_STRING, kSettingsCommand, Localization::Text(_language, StringId::Settings));
-    AppendMenuW(_menu, MF_STRING, kPauseCommand, Localization::Text(_language, StringId::Pause));
+    AppendMenuW(_menu, MF_STRING, kPauseCommand,
+                Localization::Text(_language, _enabled ? StringId::Pause : StringId::Resume));
     AppendMenuW(_menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(_menu, MF_STRING, kExitCommand, Localization::Text(_language, StringId::Exit));
 
@@ -62,9 +64,9 @@ void TrayController::Remove()
     _dispatcher = nullptr;
 }
 
-void TrayController::SetPaused(bool paused)
+void TrayController::SetEnabled(bool enabled)
 {
-    _paused = paused;
+    _enabled = enabled;
     RefreshTexts();
 }
 
@@ -80,7 +82,7 @@ void TrayController::RefreshTexts()
     ModifyMenuW(_menu, kSettingsCommand, MF_BYCOMMAND | MF_STRING, kSettingsCommand,
                 Localization::Text(_language, StringId::Settings));
     ModifyMenuW(_menu, kPauseCommand, MF_BYCOMMAND | MF_STRING, kPauseCommand,
-                Localization::Text(_language, _paused ? StringId::Resume : StringId::Pause));
+                Localization::Text(_language, _enabled ? StringId::Pause : StringId::Resume));
     ModifyMenuW(_menu, kExitCommand, MF_BYCOMMAND | MF_STRING, kExitCommand,
                 Localization::Text(_language, StringId::Exit));
 }
