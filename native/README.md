@@ -1,8 +1,8 @@
 # Native Win32 v2
 
-This directory contains the native Windows implementation. It is built with
-MSVC and the Windows SDK, using the static CRT so the release executable does
-not require the VC++ runtime.
+This directory contains the current native Windows implementation. It uses
+the Win32 API, MSVC, the Windows SDK, and the static CRT, so the release
+executable does not require .NET or the VC++ runtime.
 
 ```powershell
 $cmake = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
@@ -10,6 +10,4 @@ $cmake = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\I
 & $cmake --build native\build --config Release
 ```
 
-The native target is experimental until all v2 acceptance tests pass. The
-verified .NET v1.0 application remains the fallback release.
-
+The release executable is written to `native/build/Release/AutoMouseCursorHider.exe`.

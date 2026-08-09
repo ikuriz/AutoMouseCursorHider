@@ -1,39 +1,54 @@
 # AutoMouseCursorHider
 
-轻量的 Windows 鼠标隐藏工具：鼠标静止达到设定时长后自动隐藏，移动后立即显示。
+轻量、原生的 Windows 鼠标自动隐藏工具。
 
-## 使用方式
+鼠标静止达到设定时间后自动隐藏，移动鼠标立即恢复显示。程序默认只在系统托盘运行，不会打开常驻主窗口。
 
-双击 `publish\AutoMouseCursorHider.exe` 后，程序默认不显示主窗口，只在系统托盘运行。
+## 功能
 
-右键托盘图标可以：
+- 全局自动隐藏鼠标指针，移动后立即恢复
+- 托盘菜单：设置、暂停/恢复、退出
+- 设置隐藏延迟（0.1–3600 秒）
+- 支持开机启动
+- 托盘和设置窗口支持 English / 简体中文
+- 自动识别简体中文系统；繁体中文系统暂时回退 English
+- 配置保存在当前 Windows 用户目录
+- 无网络连接、无数据收集、无需管理员权限
+- 单实例运行，退出时会恢复系统光标
 
-- 打开设置；
-- 暂停或恢复隐藏；
-- 退出程序。
+## 直接运行
 
-设置窗口使用数字输入框和上下调节按钮，支持小数，范围为 `0.1–3600` 秒。也可以在设置窗口启用当前用户开机自启。
+从 [Releases](https://github.com/ikuriz/AutoMouseCursorHider/releases) 下载 `AutoMouseCursorHider.exe`，双击即可运行。
 
-命令行兼容操作：
+程序是原生 Win32 x64 应用，不需要安装 .NET 或 Visual C++ Runtime。首次运行时 Windows SmartScreen 可能显示安全提示，这是未进行商业代码签名的常见提示。
+
+启动后请在系统托盘找到 AutoMouseCursorHider 图标，右键即可打开设置、暂停/恢复或退出。
+
+## 构建
+
+开发环境：
+
+- Windows 10/11 x64
+- Visual Studio Build Tools（含 MSVC、Windows SDK、CMake）
+
+构建命令：
 
 ```powershell
-.\publish\AutoMouseCursorHider.exe --delay 5
-.\publish\AutoMouseCursorHider.exe --startup
-.\publish\AutoMouseCursorHider.exe --no-startup
-.\publish\AutoMouseCursorHider.exe --stop
-.\publish\AutoMouseCursorHider.exe --help
+cmake -S native -B native/build -G "Visual Studio 18 2026" -A x64
+cmake --build native/build --config Release
 ```
 
-程序只修改当前用户配置和当前用户启动项，不联网、不提权、不收集数据。单实例运行，暂停、退出和异常路径都会尝试恢复鼠标显示。
+生成文件：
 
-## 构建与测试
-
-需要 .NET 8 Desktop Runtime。为了避免把约 157 MB 的 Windows Desktop Runtime 打进应用，发布版本采用框架依赖单文件；目标电脑需要安装 .NET 8 Desktop Runtime。
-
-```powershell
-$env:DOTNET_CLI_HOME = "$PWD\.dotnet-home"
-dotnet run --project tests\AutoMouseCursorHider.Tests\AutoMouseCursorHider.Tests.csproj -p:RestoreIgnoreFailedSources=true
-dotnet publish src\AutoMouseCursorHider\AutoMouseCursorHider.csproj -c Release -r win-x64 --self-contained false -p:RestoreIgnoreFailedSources=true -o publish
+```text
+native/build/Release/AutoMouseCursorHider.exe
 ```
 
-发布完成后，应用位于 `publish\AutoMouseCursorHider.exe`。EXE 本身约 188 KB；未安装 .NET 8 Desktop Runtime 的电脑需要先安装对应运行时。
+## 版本
+
+- `v1.0.0`：早期版本
+- `v2.0.0`：原生 Win32 重构版，加入托盘设置、双语界面、统一状态模型和应用图标
+
+## License
+
+暂未指定开源许可证。
