@@ -145,7 +145,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         dialog = static_cast<SettingsDialog*>(create->lpCreateParams);
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(dialog));
         dialog->_window = window;
-        dialog->_bodyFont = CreateFontW(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        dialog->_bodyFont = CreateFontW(22, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                                         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                                         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
         return TRUE;
@@ -192,13 +192,9 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         {
             PAINTSTRUCT paint{};
             HDC dc = BeginPaint(window, &paint);
-            RECT card{24, 22, 576, 160};
-            HBRUSH cardBrush = CreateSolidBrush(RGB(247, 248, 250));
-            FillRect(dc, &card, cardBrush);
-            DeleteObject(cardBrush);
-            HBRUSH border = CreateSolidBrush(RGB(225, 228, 233));
-            FrameRect(dc, &card, border);
-            DeleteObject(border);
+            RECT client{};
+            GetClientRect(window, &client);
+            FillRect(dc, &client, GetSysColorBrush(COLOR_WINDOW));
             EndPaint(window, &paint);
         }
         return 0;
