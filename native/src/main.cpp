@@ -1,6 +1,8 @@
 #include "cursor_manager.h"
 #include "cursor_state.h"
+#include "instance_lock.h"
 #include "mouse_monitor.h"
+#include "tray.h"
 
 #include <windows.h>
 
@@ -16,6 +18,8 @@ struct AppContext
     CursorManager cursorManager;
     CursorState cursorState;
     MouseMonitor mouseMonitor;
+    TrayController tray;
+    bool paused = false;
 };
 
 void HandleActivity(AppContext& app)
@@ -76,6 +80,34 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             return 0;
         }
         break;
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case TrayController::kPauseCommand:
+            app->paused = !app->paused;
+            if (app->paused)
+            {
+                app->cursorState.Pause();
+                app->cursorManager.RestoreAndRefresh();
+            }
+            else
+            {
+                app->cursorState.Resume(GetTickCount64());
+            }
+            app->tray.SetPaused(app->paused);
+            return 0;
+        case TrayController::kExitCommand:
+            DestroyWindow(window);
+            return 0;
+        case TrayController::kSettingsCommand:
+            return 0;
+        default:
+            break;
+        }
+        break;
+    case TrayController::kTrayMessage:
+        app->tray.HandleTrayMessage(lParam);
+        return 0;
     case WM_CLOSE:
         DestroyWindow(window);
         return 0;
@@ -105,6 +137,12 @@ bool RegisterDispatcherClass(HINSTANCE instance)
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
 {
+    InstanceLock instanceLock;
+    if (!instanceLock.Acquire())
+    {
+        return 0;
+    }
+
     if (!RegisterDispatcherClass(instance))
     {
         return 1;
@@ -116,7 +154,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.dispatcher = CreateWindowExW(
         0, kWindowClass, L"AutoMouseCursorHider", 0, 0, 0, 0, 0,
         HWND_MESSAGE, nullptr, instance, &app);
-    if (app.dispatcher == nullptr || !app.mouseMonitor.Install(app.dispatcher))
+    if (app.dispatcher == nullptr || !app.mouseMonitor.Install(app.dispatcher) || !app.tray.Create(app.dispatcher))
     {
         if (app.dispatcher != nullptr)
         {
