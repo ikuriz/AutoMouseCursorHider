@@ -44,7 +44,8 @@ native/build/Release/AutoMouseCursorHider.exe
 
 ## Versions
 
-- `v2.0.0`: Native Win32 rewrite with tray settings, bilingual UI, unified state, and application icon
+- `v2.1.0`: Native Win32 release with launch feedback, silent startup, tray settings, bilingual UI, unified state, and application icon
+- `v2.0.0`: Native Win32 rewrite
 - `v1.0.0`: Early version
 
 ## License

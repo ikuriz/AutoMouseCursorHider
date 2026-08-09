@@ -6,13 +6,12 @@ $sizes = @(16, 24, 32, 48, 64, 128, 256)
 $sourceImage = [System.Drawing.Image]::FromFile($source)
 $pngImages = @()
 
-# Remove the large white border from the supplied artwork so the subject stays
-# legible at small Windows and tray icon sizes. Keep a small, even margin.
+# Detect the artwork bounds and keep a small square margin around the subject.
 $sourceBitmap = New-Object System.Drawing.Bitmap($sourceImage)
 $minX = $sourceBitmap.Width; $minY = $sourceBitmap.Height
 $maxX = -1; $maxY = -1
-for ($y = 0; $y -lt $sourceBitmap.Height; $y++) {
-    for ($x = 0; $x -lt $sourceBitmap.Width; $x++) {
+for ($y = 0; $y -lt $sourceBitmap.Height; $y += 2) {
+    for ($x = 0; $x -lt $sourceBitmap.Width; $x += 2) {
         $pixel = $sourceBitmap.GetPixel($x, $y)
         if ($pixel.R -lt 245 -or $pixel.G -lt 245 -or $pixel.B -lt 245) {
             if ($x -lt $minX) { $minX = $x }
@@ -25,7 +24,7 @@ for ($y = 0; $y -lt $sourceBitmap.Height; $y++) {
 $sourceBitmap.Dispose()
 $contentWidth = $maxX - $minX + 1
 $contentHeight = $maxY - $minY + 1
-$cropSize = [Math]::Ceiling([Math]::Max($contentWidth, $contentHeight) * 0.85)
+$cropSize = [Math]::Ceiling([Math]::Max($contentWidth, $contentHeight) * 1.10)
 $centerX = ($minX + $maxX) / 2
 $centerY = ($minY + $maxY) / 2
 $cropLeft = [Math]::Max(0, [Math]::Min($sourceImage.Width - $cropSize, $centerX - ($cropSize / 2)))
