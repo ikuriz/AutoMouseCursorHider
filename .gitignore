@@ -3,3 +3,6 @@ bin/
 obj/
 publish/
 TestResults/
+native/build/
+native/publish/*
+!native/publish/README.txt
