@@ -97,6 +97,10 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         {
         case TrayController::kPauseCommand:
             app->paused = !app->paused;
+            // Keep the temporary tray pause state synchronized with the
+            // setting shown in the next Settings dialog.
+            app->autoHideEnabled = !app->paused;
+            app->settings.enabled = app->autoHideEnabled;
             if (app->paused)
             {
                 app->cursorState.Pause();
@@ -132,6 +136,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                         if (updated.enabled != app->autoHideEnabled)
                         {
                             app->autoHideEnabled = updated.enabled;
+                            app->paused = !updated.enabled;
                             if (app->autoHideEnabled)
                             {
                                 app->cursorState.Resume(GetTickCount64());
@@ -142,9 +147,14 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                                 app->cursorManager.RestoreAndRefresh();
                             }
                         }
+                        else
+                        {
+                            app->paused = !app->autoHideEnabled;
+                        }
                         app->settings = updated;
                         app->cursorState.SetDelay(updated.delaySeconds);
                         app->tray.SetLanguage(Localization::Resolve(updated.language));
+                        app->tray.SetPaused(app->paused);
                     }
                 }
             }
