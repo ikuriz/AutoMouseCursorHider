@@ -25,7 +25,7 @@ for ($y = 0; $y -lt $sourceBitmap.Height; $y++) {
 $sourceBitmap.Dispose()
 $contentWidth = $maxX - $minX + 1
 $contentHeight = $maxY - $minY + 1
-$cropSize = [Math]::Ceiling([Math]::Max($contentWidth, $contentHeight) * 1.00)
+$cropSize = [Math]::Ceiling([Math]::Max($contentWidth, $contentHeight) * 0.92)
 $centerX = ($minX + $maxX) / 2
 $centerY = ($minY + $maxY) / 2
 $cropLeft = [Math]::Max(0, [Math]::Min($sourceImage.Width - $cropSize, $centerX - ($cropSize / 2)))
