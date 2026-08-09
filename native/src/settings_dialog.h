@@ -21,9 +21,7 @@ private:
     HWND _edit = nullptr;
     HWND _upDown = nullptr;
     HWND _startup = nullptr;
-    HFONT _titleFont = nullptr;
     HFONT _bodyFont = nullptr;
     AppSettings* _settings = nullptr;
     bool _accepted = false;
 };
-
