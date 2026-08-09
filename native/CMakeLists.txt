@@ -4,6 +4,10 @@ project(AutoMouseCursorHiderNative LANGUAGES CXX RC)
 
 add_executable(AutoMouseCursorHiderNative WIN32
     src/main.cpp
+    src/cursor_manager.cpp
+    src/cursor_manager.h
+    src/cursor_state.cpp
+    src/cursor_state.h
     src/resource.h
     src/app.rc
 )
@@ -17,3 +21,11 @@ set_target_properties(AutoMouseCursorHiderNative PROPERTIES
     VS_DPI_AWARE "PerMonitor"
 )
 
+add_executable(CursorStateTests
+    tests/cursor_state_tests.cpp
+    src/cursor_state.cpp
+    src/cursor_state.h
+)
+target_compile_features(CursorStateTests PRIVATE cxx_std_17)
+target_compile_definitions(CursorStateTests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_compile_options(CursorStateTests PRIVATE /W4 /permissive-)
