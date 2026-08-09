@@ -25,6 +25,7 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     klass.hInstance = GetModuleHandleW(nullptr);
     klass.lpszClassName = kClassName;
     klass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    klass.hbrBackground = GetSysColorBrush(COLOR_WINDOW);
     RegisterClassW(&klass);
 
     POINT cursorPoint{};
@@ -39,8 +40,8 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
 
     _settings = &settings;
     _accepted = false;
-    _window = CreateWindowExW(WS_EX_DLGMODALFRAME, kClassName, L"AutoMouseCursorHider Settings",
-                              WS_CAPTION | WS_SYSMENU | WS_POPUP, x, y,
+    _window = CreateWindowExW(WS_EX_DLGMODALFRAME, kClassName, L"AutoMouseCursorHider - Settings",
+                              WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, x, y,
                               width, height, owner, nullptr, klass.hInstance, this);
     if (_window == nullptr)
     {
@@ -130,6 +131,14 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                          dialog->_settings->startupEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
         }
         return 0;
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORBTN:
+        {
+            const auto dc = reinterpret_cast<HDC>(wParam);
+            SetBkColor(dc, GetSysColor(COLOR_WINDOW));
+            SetBkMode(dc, TRANSPARENT);
+            return reinterpret_cast<LRESULT>(GetSysColorBrush(COLOR_WINDOW));
+        }
     case WM_NOTIFY:
         if (reinterpret_cast<const NMHDR*>(lParam)->idFrom == kUpDownId &&
             reinterpret_cast<const NMHDR*>(lParam)->code == UDN_DELTAPOS)
