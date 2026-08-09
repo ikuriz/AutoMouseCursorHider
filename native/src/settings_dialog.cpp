@@ -27,11 +27,21 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     klass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     RegisterClassW(&klass);
 
+    POINT cursorPoint{};
+    GetCursorPos(&cursorPoint);
+    HMONITOR monitor = MonitorFromPoint(cursorPoint, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo{sizeof(monitorInfo)};
+    GetMonitorInfoW(monitor, &monitorInfo);
+    constexpr int width = 500;
+    constexpr int height = 280;
+    const int x = monitorInfo.rcWork.left + ((monitorInfo.rcWork.right - monitorInfo.rcWork.left) - width) / 2;
+    const int y = monitorInfo.rcWork.top + ((monitorInfo.rcWork.bottom - monitorInfo.rcWork.top) - height) / 2;
+
     _settings = &settings;
     _accepted = false;
     _window = CreateWindowExW(WS_EX_DLGMODALFRAME, kClassName, L"AutoMouseCursorHider Settings",
-                              WS_CAPTION | WS_SYSMENU | WS_POPUP, CW_USEDEFAULT, CW_USEDEFAULT,
-                              360, 180, owner, nullptr, klass.hInstance, this);
+                              WS_CAPTION | WS_SYSMENU | WS_POPUP, x, y,
+                              width, height, owner, nullptr, klass.hInstance, this);
     if (_window == nullptr)
     {
         _settings = nullptr;
@@ -95,20 +105,20 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
     case WM_CREATE:
         {
             dialog->_edit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"3.0",
-                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 150, 28, 120, 26,
+                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 200, 42, 120, 28,
                                              window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kEditId)), nullptr, nullptr);
             dialog->_upDown = CreateWindowExW(0, UPDOWN_CLASSW, nullptr,
-                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 270, 28, 24, 26,
+                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 325, 42, 24, 28,
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", L"Start with Windows",
-                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 30, 70, 230, 24,
+                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 40, 105, 230, 28,
                                                 window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kStartupId)), nullptr, nullptr);
             CreateWindowExW(0, L"STATIC", L"Hide after seconds:", WS_CHILD | WS_VISIBLE,
-                            30, 33, 115, 20, window, nullptr, nullptr, nullptr);
+                            40, 47, 145, 22, window, nullptr, nullptr, nullptr);
             CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-                            185, 112, 75, 28, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
+                            300, 190, 80, 32, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
             CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE,
-                            270, 112, 75, 28, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+                            400, 190, 80, 32, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
             std::wostringstream text;
             text << std::fixed << std::setprecision(1) << dialog->_settings->delaySeconds;
             SetWindowTextW(dialog->_edit, text.str().c_str());
@@ -116,11 +126,13 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                          dialog->_settings->startupEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
         }
         return 0;
-    case WM_VSCROLL:
-        if (reinterpret_cast<HWND>(lParam) == dialog->_upDown)
+    case WM_NOTIFY:
+        if (reinterpret_cast<const NMHDR*>(lParam)->idFrom == kUpDownId &&
+            reinterpret_cast<const NMHDR*>(lParam)->code == UDN_DELTAPOS)
         {
-            UpdateValue(dialog->_edit, LOWORD(wParam) == SB_LINEUP ? 0.5 : -0.5);
-            return 0;
+            const auto* change = reinterpret_cast<const NMUPDOWN*>(lParam);
+            UpdateValue(dialog->_edit, change->iDelta < 0 ? 0.5 : -0.5);
+            return TRUE;
         }
         break;
     case WM_COMMAND:
