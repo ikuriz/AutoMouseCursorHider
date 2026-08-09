@@ -1,44 +1,40 @@
 # AutoMouseCursorHider
 
-轻量、原生的 Windows 鼠标自动隐藏工具。
+轻量原生的 Windows 鼠标自动隐藏工具。
 
-鼠标静止达到设定时间后自动隐藏，移动鼠标立即恢复显示。程序默认只在系统托盘运行，不会打开常驻主窗口。
+鼠标静止一段时间后自动隐藏，移动后立即恢复。程序只在系统托盘运行，无常驻主窗口。
 
 ## 功能
 
-- 全局自动隐藏鼠标指针，移动后立即恢复
+- 全局自动隐藏鼠标指针，移动即恢复
 - 托盘菜单：设置、暂停/恢复、退出
-- 设置隐藏延迟（0.1–3600 秒）
+- 可设置隐藏延迟（0.1–3600 秒）
 - 支持开机启动
-- 托盘和设置窗口支持 English / 简体中文
-- 自动识别简体中文系统；繁体中文系统暂时回退 English
-- 配置保存在当前 Windows 用户目录
-- 无网络连接、无数据收集、无需管理员权限
-- 单实例运行，退出时会恢复系统光标
+- 中英双语界面（自动跟随系统语言）
+- 单文件、无安装、无需管理员权限
+- 不联网、不收集数据
+- 退出时自动恢复系统光标
 
-## 直接运行
+## 使用方法
 
-从 [Releases](https://github.com/ikuriz/AutoMouseCursorHider/releases) 下载 `AutoMouseCursorHider.exe`，双击即可运行。
+1. 从 [Releases](../../releases) 下载 `AutoMouseCursorHider.exe`
+2. 双击运行
+3. 在系统托盘找到图标，右键即可设置、暂停或退出
 
-程序是原生 Win32 x64 应用，不需要安装 .NET 或 Visual C++ Runtime。首次运行时 Windows SmartScreen 可能显示安全提示，这是未进行商业代码签名的常见提示。
+> 首次运行时 Windows SmartScreen 可能提示未知应用，这是未进行代码签名的常见情况，确认文件来源可靠后选择“仍要运行”即可。
 
-启动后请在系统托盘找到 AutoMouseCursorHider 图标，右键即可打开设置、暂停/恢复或退出。
+程序为原生 Win32 x64 应用，不依赖 .NET 或 Visual C++ Runtime。
 
-## 构建
+## 构建（开发者）
 
-开发环境：
-
-- Windows 10/11 x64
-- Visual Studio Build Tools（含 MSVC、Windows SDK、CMake）
-
-构建命令：
+需要 Windows 10/11 x64，以及包含 MSVC、Windows SDK 和 CMake 的 Visual Studio Build Tools。
 
 ```powershell
 cmake -S native -B native/build -G "Visual Studio 18 2026" -A x64
 cmake --build native/build --config Release
 ```
 
-生成文件：
+输出文件：
 
 ```text
 native/build/Release/AutoMouseCursorHider.exe
@@ -46,8 +42,8 @@ native/build/Release/AutoMouseCursorHider.exe
 
 ## 版本
 
+- `v2.0.0`：原生 Win32 重构，加入托盘设置、双语界面、统一状态和应用图标
 - `v1.0.0`：早期版本
-- `v2.0.0`：原生 Win32 重构版，加入托盘设置、双语界面、统一状态模型和应用图标
 
 ## License
 
