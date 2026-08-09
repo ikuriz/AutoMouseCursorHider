@@ -15,11 +15,15 @@ private:
     static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     static void UpdateValue(HWND edit, double delta);
     static bool ReadValue(HWND edit, double& value);
+    static void DrawButton(const DRAWITEMSTRUCT& draw);
 
     HWND _window = nullptr;
     HWND _edit = nullptr;
     HWND _upDown = nullptr;
     HWND _startup = nullptr;
+    HFONT _titleFont = nullptr;
+    HFONT _bodyFont = nullptr;
     AppSettings* _settings = nullptr;
     bool _accepted = false;
 };
+
