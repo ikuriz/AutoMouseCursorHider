@@ -15,7 +15,7 @@ private:
     static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     static void UpdateValue(HWND edit, double delta);
     static bool ReadValue(HWND edit, double& value);
-    static void DrawButton(const DRAWITEMSTRUCT& draw);
+    void DrawButton(const DRAWITEMSTRUCT& draw);
 
     HWND _window = nullptr;
     HWND _edit = nullptr;
@@ -23,5 +23,6 @@ private:
     HWND _startup = nullptr;
     HFONT _bodyFont = nullptr;
     AppSettings* _settings = nullptr;
+    bool _startupChecked = false;
     bool _accepted = false;
 };

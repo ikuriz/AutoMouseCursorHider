@@ -103,7 +103,7 @@ void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
     {
         RECT box{draw.rcItem.left, draw.rcItem.top + 5, draw.rcItem.left + 22, draw.rcItem.top + 27};
         FrameRect(draw.hDC, &box, GetSysColorBrush(COLOR_GRAYTEXT));
-        if (SendMessageW(draw.hwndItem, BM_GETCHECK, 0, 0) == BST_CHECKED)
+        if (_startupChecked)
         {
             HPEN pen = CreatePen(PS_SOLID, 2, RGB(35, 110, 220));
             const auto oldPen = SelectObject(draw.hDC, pen);
@@ -116,7 +116,9 @@ void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
         RECT text = draw.rcItem;
         text.left += 34;
         SetTextColor(draw.hDC, RGB(35, 40, 48));
+        const auto oldFont = SelectObject(draw.hDC, _bodyFont);
         DrawTextW(draw.hDC, L"Start with Windows", -1, &text, DT_SINGLELINE | DT_VCENTER);
+        SelectObject(draw.hDC, oldFont);
         return;
     }
 
@@ -131,9 +133,11 @@ void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
     FrameRect(draw.hDC, &button, border);
     DeleteObject(border);
     SetTextColor(draw.hDC, textColor);
+    const auto oldFont = SelectObject(draw.hDC, _bodyFont);
     wchar_t label[32]{};
     GetWindowTextW(draw.hwndItem, label, ARRAYSIZE(label));
     DrawTextW(draw.hDC, label, -1, &button, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    SelectObject(draw.hDC, oldFont);
 }
 
 LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
@@ -166,7 +170,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                                                WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 72, 32, 40,
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", nullptr,
-                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
                                                 44, 185, 360, 42, window,
                                                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kStartupId)), nullptr, nullptr);
             HWND explanation = CreateWindowExW(0, L"STATIC", L"The mouse cursor hides after inactivity.", WS_CHILD | WS_VISIBLE,
@@ -186,8 +190,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             std::wostringstream text;
             text << std::fixed << std::setprecision(1) << dialog->_settings->delaySeconds;
             SetWindowTextW(dialog->_edit, text.str().c_str());
-            SendMessageW(dialog->_startup, BM_SETCHECK,
-                         dialog->_settings->startupEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
+            dialog->_startupChecked = dialog->_settings->startupEnabled;
         }
         return 0;
     case WM_PAINT:
@@ -201,7 +204,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         }
         return 0;
     case WM_DRAWITEM:
-        DrawButton(*reinterpret_cast<const DRAWITEMSTRUCT*>(lParam));
+        dialog->DrawButton(*reinterpret_cast<const DRAWITEMSTRUCT*>(lParam));
         return TRUE;
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
@@ -223,6 +226,12 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         }
         break;
     case WM_COMMAND:
+        if (LOWORD(wParam) == kStartupId && HIWORD(wParam) == BN_CLICKED)
+        {
+            dialog->_startupChecked = !dialog->_startupChecked;
+            InvalidateRect(dialog->_startup, nullptr, TRUE);
+            return 0;
+        }
         if (LOWORD(wParam) == IDOK)
         {
             double delay = 0.0;
@@ -232,7 +241,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                 return 0;
             }
             dialog->_settings->delaySeconds = delay;
-            dialog->_settings->startupEnabled = SendMessageW(dialog->_startup, BM_GETCHECK, 0, 0) == BST_CHECKED;
+            dialog->_settings->startupEnabled = dialog->_startupChecked;
             dialog->_accepted = true;
             DestroyWindow(window);
             return 0;
