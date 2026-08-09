@@ -14,6 +14,7 @@ namespace
 constexpr wchar_t kSection[] = L"Settings";
 constexpr wchar_t kDelayKey[] = L"DelaySeconds";
 constexpr wchar_t kEnabledKey[] = L"Enabled";
+constexpr wchar_t kLanguageKey[] = L"Language";
 constexpr wchar_t kStartupKey[] = L"StartupEnabled";
 constexpr double kMinimumDelay = 0.1;
 constexpr double kMaximumDelay = 3600.0;
@@ -56,6 +57,9 @@ AppSettings ConfigStore::Load()
         settings.delaySeconds = delay;
     }
     settings.startupEnabled = GetPrivateProfileIntW(kSection, kStartupKey, 0, path.c_str()) != 0;
+    wchar_t language[32]{};
+    GetPrivateProfileStringW(kSection, kLanguageKey, L"auto", language, ARRAYSIZE(language), path.c_str());
+    settings.language = Localization::ParseMode(language);
     return settings;
 }
 
@@ -74,5 +78,6 @@ bool ConfigStore::Save(const AppSettings& settings)
     delay << std::fixed << std::setprecision(3) << settings.delaySeconds;
     return WritePrivateProfileStringW(kSection, kEnabledKey, settings.enabled ? L"1" : L"0", path.c_str()) &&
            WritePrivateProfileStringW(kSection, kDelayKey, delay.str().c_str(), path.c_str()) &&
-           WritePrivateProfileStringW(kSection, kStartupKey, settings.startupEnabled ? L"1" : L"0", path.c_str());
+           WritePrivateProfileStringW(kSection, kStartupKey, settings.startupEnabled ? L"1" : L"0", path.c_str()) &&
+           WritePrivateProfileStringW(kSection, kLanguageKey, Localization::ModeValue(settings.language), path.c_str());
 }

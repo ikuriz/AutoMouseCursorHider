@@ -16,6 +16,8 @@ add_executable(AutoMouseCursorHiderNative WIN32
     src/tray.h
     src/config_store.cpp
     src/config_store.h
+    src/localization.cpp
+    src/localization.h
     src/startup_registration.cpp
     src/startup_registration.h
     src/settings_dialog.cpp
@@ -49,6 +51,8 @@ add_executable(ConfigStoreTests
     tests/config_store_tests.cpp
     src/config_store.cpp
     src/config_store.h
+    src/localization.cpp
+    src/localization.h
     src/delay_step.cpp
     src/delay_step.h
 )

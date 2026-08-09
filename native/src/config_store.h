@@ -1,12 +1,14 @@
 #pragma once
 
 #include <string>
+#include "localization.h"
 
 struct AppSettings
 {
     bool enabled = true;
     double delaySeconds = 3.0;
     bool startupEnabled = false;
+    LanguageMode language = LanguageMode::Auto;
 };
 
 class ConfigStore

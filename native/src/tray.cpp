@@ -5,7 +5,7 @@ TrayController::~TrayController()
     Remove();
 }
 
-bool TrayController::Create(HWND dispatcher)
+bool TrayController::Create(HWND dispatcher, Language language)
 {
     if (dispatcher == nullptr || _created)
     {
@@ -13,6 +13,7 @@ bool TrayController::Create(HWND dispatcher)
     }
 
     _dispatcher = dispatcher;
+    _language = language;
     _menu = CreatePopupMenu();
     _icon = LoadIconW(nullptr, IDI_INFORMATION);
     if (_menu == nullptr || _icon == nullptr)
@@ -21,10 +22,10 @@ bool TrayController::Create(HWND dispatcher)
         return false;
     }
 
-    AppendMenuW(_menu, MF_STRING, kSettingsCommand, L"Settings");
-    AppendMenuW(_menu, MF_STRING, kPauseCommand, L"Pause");
+    AppendMenuW(_menu, MF_STRING, kSettingsCommand, Localization::Text(_language, StringId::Settings));
+    AppendMenuW(_menu, MF_STRING, kPauseCommand, Localization::Text(_language, StringId::Pause));
     AppendMenuW(_menu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(_menu, MF_STRING, kExitCommand, L"Exit");
+    AppendMenuW(_menu, MF_STRING, kExitCommand, Localization::Text(_language, StringId::Exit));
 
     _notify.cbSize = sizeof(_notify);
     _notify.hWnd = dispatcher;
@@ -63,13 +64,25 @@ void TrayController::Remove()
 
 void TrayController::SetPaused(bool paused)
 {
-    if (_menu == nullptr)
-    {
-        return;
-    }
+    _paused = paused;
+    RefreshTexts();
+}
 
+void TrayController::SetLanguage(Language language)
+{
+    _language = language;
+    RefreshTexts();
+}
+
+void TrayController::RefreshTexts()
+{
+    if (_menu == nullptr) return;
+    ModifyMenuW(_menu, kSettingsCommand, MF_BYCOMMAND | MF_STRING, kSettingsCommand,
+                Localization::Text(_language, StringId::Settings));
     ModifyMenuW(_menu, kPauseCommand, MF_BYCOMMAND | MF_STRING, kPauseCommand,
-                paused ? L"Resume" : L"Pause");
+                Localization::Text(_language, _paused ? StringId::Resume : StringId::Pause));
+    ModifyMenuW(_menu, kExitCommand, MF_BYCOMMAND | MF_STRING, kExitCommand,
+                Localization::Text(_language, StringId::Exit));
 }
 
 void TrayController::HandleTrayMessage(LPARAM message)

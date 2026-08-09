@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <shellapi.h>
+#include "localization.h"
 
 class TrayController
 {
@@ -16,17 +17,21 @@ public:
     TrayController& operator=(const TrayController&) = delete;
     ~TrayController();
 
-    bool Create(HWND dispatcher);
+    bool Create(HWND dispatcher, Language language);
     void Remove();
     void SetPaused(bool paused);
+    void SetLanguage(Language language);
     void HandleTrayMessage(LPARAM message);
 
 private:
     void ShowMenu();
+    void RefreshTexts();
 
     HWND _dispatcher = nullptr;
     HMENU _menu = nullptr;
     HICON _icon = nullptr;
     NOTIFYICONDATAW _notify{};
     bool _created = false;
+    bool _paused = false;
+    Language _language = Language::English;
 };

@@ -12,6 +12,8 @@ constexpr int kEditId = 5001;
 constexpr int kUpDownId = 5002;
 constexpr int kStartupId = 5003;
 constexpr int kEnabledId = 5007;
+constexpr int kLanguageLabelId = 5008;
+constexpr int kLanguageComboId = 5009;
 }
 
 bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
@@ -33,14 +35,14 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     MONITORINFO monitorInfo{sizeof(monitorInfo)};
     GetMonitorInfoW(monitor, &monitorInfo);
     constexpr int width = 600;
-    constexpr int height = 360;
+    constexpr int height = 420;
     const int x = monitorInfo.rcWork.left + ((monitorInfo.rcWork.right - monitorInfo.rcWork.left) - width) / 2;
     const int y = monitorInfo.rcWork.top + ((monitorInfo.rcWork.bottom - monitorInfo.rcWork.top) - height) / 2;
 
     _settings = &settings;
     _accepted = false;
     _window = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_APPWINDOW, kClassName,
-                              L"AutoMouseCursorHider - Settings",
+                              Localization::Text(Localization::Resolve(settings.language), StringId::WindowTitle),
                               WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
                               x, y, width, height, nullptr, nullptr, klass.hInstance, this);
     if (_window == nullptr)
@@ -49,7 +51,6 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
         return false;
     }
 
-    SetWindowTextW(_window, L"AutoMouseCursorHider - Settings");
     EnableWindow(owner, FALSE);
     ShowWindow(_window, SW_SHOW);
     UpdateWindow(_window);
@@ -119,7 +120,9 @@ void SettingsDialog::DrawButton(const DRAWITEMSTRUCT& draw)
         text.left += 34;
         SetTextColor(draw.hDC, RGB(35, 40, 48));
         const auto oldFont = SelectObject(draw.hDC, _bodyFont);
-        DrawTextW(draw.hDC, draw.CtlID == kEnabledId ? L"Enable auto-hide" : L"Start with Windows",
+        DrawTextW(draw.hDC, draw.CtlID == kEnabledId
+                      ? Localization::Text(_language, StringId::EnableAutoHide)
+                      : Localization::Text(_language, StringId::StartWithWindows),
                   -1, &text, DT_SINGLELINE | DT_VCENTER);
         SelectObject(draw.hDC, oldFont);
         return;
@@ -174,23 +177,32 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
             dialog->_enabled = CreateWindowExW(0, L"BUTTON", nullptr,
                                                 WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
-                                                44, 72, 360, 42, window,
+                                                44, 72, 500, 42, window,
                                                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kEnabledId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", nullptr,
                                                 WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
-                                                44, 185, 360, 42, window,
+                                                44, 185, 500, 42, window,
                                                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kStartupId)), nullptr, nullptr);
-            HWND explanation = CreateWindowExW(0, L"STATIC", L"The mouse cursor hides after inactivity.", WS_CHILD | WS_VISIBLE,
-                                               50, 27, 500, 32, window, nullptr, nullptr, nullptr);
-            HWND label = CreateWindowExW(0, L"STATIC", L"Delay", WS_CHILD | WS_VISIBLE,
-                                         50, 130, 180, 34, window, nullptr, nullptr, nullptr);
-            HWND unit = CreateWindowExW(0, L"STATIC", L"seconds", WS_CHILD | WS_VISIBLE,
-                                        468, 130, 110, 34, window, nullptr, nullptr, nullptr);
-            HWND ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                      350, 245, 92, 44, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
-            HWND cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                          452, 245, 92, 44, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
-            for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_enabled, dialog->_startup, explanation, label, unit, ok, cancel})
+            dialog->_explanation = CreateWindowExW(0, L"STATIC", nullptr, WS_CHILD | WS_VISIBLE,
+                                                   50, 27, 500, 32, window, nullptr, nullptr, nullptr);
+            dialog->_label = CreateWindowExW(0, L"STATIC", nullptr, WS_CHILD | WS_VISIBLE,
+                                             50, 130, 180, 34, window, nullptr, nullptr, nullptr);
+            dialog->_unit = CreateWindowExW(0, L"STATIC", nullptr, WS_CHILD | WS_VISIBLE,
+                                            468, 130, 110, 34, window, nullptr, nullptr, nullptr);
+            dialog->_languageLabel = CreateWindowExW(0, L"STATIC", nullptr, WS_CHILD | WS_VISIBLE,
+                                                     50, 255, 180, 34, window,
+                                                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(kLanguageLabelId)), nullptr, nullptr);
+            dialog->_languageCombo = CreateWindowExW(0, WC_COMBOBOXW, nullptr,
+                                                     WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_TABSTOP,
+                                                     260, 247, 270, 36, window,
+                                                     reinterpret_cast<HMENU>(static_cast<INT_PTR>(kLanguageComboId)), nullptr, nullptr);
+            dialog->_ok = CreateWindowExW(0, L"BUTTON", nullptr, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_TABSTOP,
+                                          320, 320, 100, 44, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
+            dialog->_cancel = CreateWindowExW(0, L"BUTTON", nullptr, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_TABSTOP,
+                                              435, 320, 100, 44, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+            for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_enabled, dialog->_startup,
+                                 dialog->_explanation, dialog->_label, dialog->_unit, dialog->_languageLabel,
+                                 dialog->_languageCombo, dialog->_ok, dialog->_cancel})
             {
                 SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(dialog->_bodyFont), TRUE);
             }
@@ -199,6 +211,8 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             SetWindowTextW(dialog->_edit, text.str().c_str());
             dialog->_autoHideChecked = dialog->_settings->enabled;
             dialog->_startupChecked = dialog->_settings->startupEnabled;
+            dialog->_language = Localization::Resolve(dialog->_settings->language);
+            dialog->RefreshTexts();
         }
         return 0;
     case WM_PAINT:
@@ -253,7 +267,8 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             double delay = 0.0;
             if (!ReadValue(dialog->_edit, delay))
             {
-                MessageBoxW(window, L"Enter a value from 0.1 to 3600 seconds.", L"Invalid value", MB_ICONWARNING);
+                MessageBoxW(window, Localization::Text(dialog->_language, StringId::InvalidValueText),
+                            Localization::Text(dialog->_language, StringId::InvalidValue), MB_ICONWARNING);
                 return 0;
             }
             dialog->_settings->delaySeconds = delay;
@@ -261,6 +276,15 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             dialog->_settings->startupEnabled = dialog->_startupChecked;
             dialog->_accepted = true;
             DestroyWindow(window);
+            return 0;
+        }
+        if (LOWORD(wParam) == kLanguageComboId && HIWORD(wParam) == CBN_SELCHANGE)
+        {
+            const int selection = static_cast<int>(SendMessageW(dialog->_languageCombo, CB_GETCURSEL, 0, 0));
+            dialog->_settings->language = selection == 1 ? LanguageMode::SimplifiedChinese
+                                                          : selection == 2 ? LanguageMode::English : LanguageMode::Auto;
+            dialog->_language = Localization::Resolve(dialog->_settings->language);
+            dialog->RefreshTexts();
             return 0;
         }
         if (LOWORD(wParam) == IDCANCEL)
@@ -281,4 +305,25 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         break;
     }
     return DefWindowProcW(window, message, wParam, lParam);
+}
+
+void SettingsDialog::RefreshTexts()
+{
+    if (_window == nullptr) return;
+    SetWindowTextW(_window, Localization::Text(_language, StringId::WindowTitle));
+    SetWindowTextW(_explanation, Localization::Text(_language, StringId::Explanation));
+    SetWindowTextW(_label, Localization::Text(_language, StringId::Delay));
+    SetWindowTextW(_unit, Localization::Text(_language, StringId::Seconds));
+    SetWindowTextW(_languageLabel, Localization::Text(_language, StringId::Language));
+    SetWindowTextW(_ok, Localization::Text(_language, StringId::Ok));
+    SetWindowTextW(_cancel, Localization::Text(_language, StringId::Cancel));
+    SendMessageW(_languageCombo, CB_RESETCONTENT, 0, 0);
+    SendMessageW(_languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(Localization::Text(_language, StringId::SystemDefault)));
+    SendMessageW(_languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(Localization::Text(_language, StringId::SimplifiedChinese)));
+    SendMessageW(_languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(Localization::Text(_language, StringId::English)));
+    const int selection = _settings->language == LanguageMode::SimplifiedChinese ? 1
+                           : _settings->language == LanguageMode::English ? 2 : 0;
+    SendMessageW(_languageCombo, CB_SETCURSEL, selection, 0);
+    InvalidateRect(_enabled, nullptr, TRUE);
+    InvalidateRect(_startup, nullptr, TRUE);
 }

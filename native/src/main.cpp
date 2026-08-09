@@ -123,7 +123,9 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                         : StartupRegistration::Disable();
                     if (!startupChanged || !ConfigStore::Save(updated))
                     {
-                        MessageBoxW(window, L"Unable to save settings.", L"AutoMouseCursorHider", MB_ICONERROR);
+                        const auto language = Localization::Resolve(updated.language);
+                        MessageBoxW(window, Localization::Text(language, StringId::SaveFailed),
+                                    Localization::Text(language, StringId::AppName), MB_ICONERROR);
                     }
                     else
                     {
@@ -142,6 +144,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                         }
                         app->settings = updated;
                         app->cursorState.SetDelay(updated.delaySeconds);
+                        app->tray.SetLanguage(Localization::Resolve(updated.language));
                     }
                 }
             }
@@ -207,7 +210,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.dispatcher = CreateWindowExW(
         0, kWindowClass, L"AutoMouseCursorHider", 0, 0, 0, 0, 0,
         HWND_MESSAGE, nullptr, instance, &app);
-    if (app.dispatcher == nullptr || !app.mouseMonitor.Install(app.dispatcher) || !app.tray.Create(app.dispatcher))
+    if (app.dispatcher == nullptr || !app.mouseMonitor.Install(app.dispatcher) ||
+        !app.tray.Create(app.dispatcher, Localization::Resolve(app.settings.language)))
     {
         if (app.dispatcher != nullptr)
         {
