@@ -21,7 +21,7 @@ bool TrayController::Create(HWND dispatcher)
         return false;
     }
 
-    AppendMenuW(_menu, MF_STRING | MF_GRAYED, kSettingsCommand, L"Settings");
+    AppendMenuW(_menu, MF_STRING, kSettingsCommand, L"Settings");
     AppendMenuW(_menu, MF_STRING, kPauseCommand, L"Pause");
     AppendMenuW(_menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(_menu, MF_STRING, kExitCommand, L"Exit");
@@ -93,4 +93,3 @@ void TrayController::ShowMenu()
     TrackPopupMenu(_menu, TPM_RIGHTBUTTON, point.x, point.y, 0, _dispatcher, nullptr);
     PostMessageW(_dispatcher, WM_NULL, 0, 0);
 }
-
