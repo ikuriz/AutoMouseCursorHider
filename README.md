@@ -45,6 +45,7 @@ native/build/Release/AutoMouseCursorHider.exe
 ## Versions
 
 - `v2.1.2`: Fixed Explorer/taskbar icon compatibility and refreshed the application icon
+- `v2.2.0`: Added an Exit button to the settings window
 - `v2.1.1`: Refreshed application and tray icon with a larger mouse subject
 - `v2.1.0`: Native Win32 release with launch feedback, silent startup, tray settings, bilingual UI, and unified state
 - `v2.0.0`: Native Win32 rewrite
