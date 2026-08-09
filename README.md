@@ -1,50 +1,52 @@
 # AutoMouseCursorHider
 
-轻量原生的 Windows 鼠标自动隐藏工具。
+Lightweight, native Windows utility that automatically hides the mouse cursor.
 
-鼠标静止一段时间后自动隐藏，移动后立即恢复。程序只在系统托盘运行，无常驻主窗口。
+The cursor hides after a period of inactivity and reappears as soon as you move the mouse. The app runs quietly in the system tray without a permanent main window.
 
-## 功能
+[简体中文 README](README.zh-CN.md)
 
-- 全局自动隐藏鼠标指针，移动即恢复
-- 托盘菜单：设置、暂停/恢复、退出
-- 可设置隐藏延迟（0.1–3600 秒）
-- 支持开机启动
-- 中英双语界面（自动跟随系统语言）
-- 单文件、无安装、无需管理员权限
-- 不联网、不收集数据
-- 退出时自动恢复系统光标
+## Features
 
-## 使用方法
+- Hide the mouse cursor globally and restore it on movement
+- Tray menu for Settings, Pause/Resume, and Exit
+- Adjustable hide delay from 0.1 to 3600 seconds
+- Optional start with Windows
+- English and Simplified Chinese interface
+- Single-file app with no installer and no administrator rights required
+- No network connection and no data collection
+- Restores the system cursor when exiting
 
-1. 从 [Releases](../../releases) 下载 `AutoMouseCursorHider.exe`
-2. 双击运行
-3. 在系统托盘找到图标，右键即可设置、暂停或退出
+## Usage
 
-> 首次运行时 Windows SmartScreen 可能提示未知应用，这是未进行代码签名的常见情况，确认文件来源可靠后选择“仍要运行”即可。
+1. Download `AutoMouseCursorHider.exe` from [Releases](../../releases)
+2. Run the executable
+3. Find the icon in the system tray and right-click it to configure, pause, resume, or exit
 
-程序为原生 Win32 x64 应用，不依赖 .NET 或 Visual C++ Runtime。
+> Windows SmartScreen may show a warning because the executable is not commercially code-signed. After confirming that the file came from a trusted source, choose **Run anyway**.
 
-## 构建（开发者）
+This is a native Win32 x64 application. It does not require .NET or the Visual C++ Runtime.
 
-需要 Windows 10/11 x64，以及包含 MSVC、Windows SDK 和 CMake 的 Visual Studio Build Tools。
+## Build (developers)
+
+Requirements: Windows 10/11 x64 and Visual Studio Build Tools with MSVC, the Windows SDK, and CMake.
 
 ```powershell
 cmake -S native -B native/build -G "Visual Studio 18 2026" -A x64
 cmake --build native/build --config Release
 ```
 
-输出文件：
+Output:
 
 ```text
 native/build/Release/AutoMouseCursorHider.exe
 ```
 
-## 版本
+## Versions
 
-- `v2.0.0`：原生 Win32 重构，加入托盘设置、双语界面、统一状态和应用图标
-- `v1.0.0`：早期版本
+- `v2.0.0`: Native Win32 rewrite with tray settings, bilingual UI, unified state, and application icon
+- `v1.0.0`: Early version
 
 ## License
 
-暂未指定开源许可证。
+No open-source license has been specified yet.
