@@ -145,7 +145,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         dialog = static_cast<SettingsDialog*>(create->lpCreateParams);
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(dialog));
         dialog->_window = window;
-        dialog->_bodyFont = CreateFontW(22, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        dialog->_bodyFont = CreateFontW(24, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                                         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                                         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
         return TRUE;
@@ -160,24 +160,26 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
     case WM_CREATE:
         {
             dialog->_edit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"3.0",
-                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 260, 62, 160, 38,
+                                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 260, 72, 160, 40,
                                              window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kEditId)), nullptr, nullptr);
             dialog->_upDown = CreateWindowExW(0, UPDOWN_CLASSW, nullptr,
-                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 62, 32, 38,
+                                               WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 72, 32, 40,
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", nullptr,
                                                 WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
-                                                44, 190, 330, 38, window,
+                                                44, 185, 360, 42, window,
                                                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kStartupId)), nullptr, nullptr);
-            HWND label = CreateWindowExW(0, L"STATIC", L"Hide after", WS_CHILD | WS_VISIBLE,
-                                         50, 72, 180, 32, window, nullptr, nullptr, nullptr);
+            HWND explanation = CreateWindowExW(0, L"STATIC", L"The mouse cursor hides after inactivity.", WS_CHILD | WS_VISIBLE,
+                                               50, 27, 500, 32, window, nullptr, nullptr, nullptr);
+            HWND label = CreateWindowExW(0, L"STATIC", L"Delay", WS_CHILD | WS_VISIBLE,
+                                         50, 82, 180, 34, window, nullptr, nullptr, nullptr);
             HWND unit = CreateWindowExW(0, L"STATIC", L"seconds", WS_CHILD | WS_VISIBLE,
-                                        468, 72, 110, 32, window, nullptr, nullptr, nullptr);
+                                        468, 82, 110, 34, window, nullptr, nullptr, nullptr);
             HWND ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                      350, 245, 92, 42, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
+                                      350, 245, 92, 44, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
             HWND cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                          452, 245, 92, 42, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
-            for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_startup, label, unit, ok, cancel})
+                                          452, 245, 92, 44, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+            for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_startup, explanation, label, unit, ok, cancel})
             {
                 SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(dialog->_bodyFont), TRUE);
             }
