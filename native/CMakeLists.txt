@@ -27,6 +27,7 @@ add_executable(AutoMouseCursorHiderNative WIN32
     src/resource.h
     src/app.rc
     src/app.manifest
+    assets/AutoMouseCursorHider.ico
 )
 
 target_compile_features(AutoMouseCursorHiderNative PRIVATE cxx_std_17)

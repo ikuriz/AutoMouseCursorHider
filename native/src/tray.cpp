@@ -1,4 +1,5 @@
 #include "tray.h"
+#include "resource.h"
 
 TrayController::~TrayController()
 {
@@ -16,7 +17,8 @@ bool TrayController::Create(HWND dispatcher, Language language, bool enabled)
     _language = language;
     _enabled = enabled;
     _menu = CreatePopupMenu();
-    _icon = LoadIconW(nullptr, IDI_INFORMATION);
+    _icon = static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP),
+                                          IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
     if (_menu == nullptr || _icon == nullptr)
     {
         Remove();
