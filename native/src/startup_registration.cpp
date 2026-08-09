@@ -29,7 +29,7 @@ bool StartupRegistration::Enable(const std::wstring& executablePath)
     {
         return false;
     }
-    const auto quoted = L"\"" + executablePath + L"\"";
+    const auto quoted = L"\"" + executablePath + L"\" --startup";
     const auto result = RegSetValueExW(key, kValueName, 0, REG_SZ,
                                        reinterpret_cast<const BYTE*>(quoted.c_str()),
                                        static_cast<DWORD>((quoted.size() + 1) * sizeof(wchar_t)));
@@ -48,4 +48,3 @@ bool StartupRegistration::Disable()
     RegCloseKey(key);
     return result == ERROR_SUCCESS || result == ERROR_FILE_NOT_FOUND;
 }
-
