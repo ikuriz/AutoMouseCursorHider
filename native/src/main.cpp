@@ -14,6 +14,7 @@ namespace
 constexpr wchar_t kWindowClass[] = L"AutoMouseCursorHider.Native.Dispatcher.v2";
 constexpr UINT_PTR kTimerId = 1;
 constexpr UINT kTimerIntervalMs = 100;
+constexpr UINT kShowSettingsMessage = WM_APP + 10;
 
 struct AppContext
 {
@@ -61,6 +62,51 @@ void HandleTimer(AppContext& app)
     }
 }
 
+bool IsInteractiveLaunch(PCWSTR commandLine)
+{
+    return commandLine == nullptr || *commandLine == L'\0';
+}
+
+void ShowSettings(AppContext& app)
+{
+    AppSettings updated = app.settings;
+    if (!app.settingsDialog.ShowModal(app.dispatcher, updated))
+    {
+        return;
+    }
+
+    const bool oldEnabled = app.settings.enabled;
+    wchar_t executablePath[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, executablePath, ARRAYSIZE(executablePath));
+    const bool startupChanged = updated.startupEnabled
+        ? StartupRegistration::Enable(executablePath)
+        : StartupRegistration::Disable();
+    if (!startupChanged || !ConfigStore::Save(updated))
+    {
+        const auto language = Localization::Resolve(updated.language);
+        MessageBoxW(app.dispatcher, Localization::Text(language, StringId::SaveFailed),
+                    Localization::Text(language, StringId::AppName), MB_ICONERROR);
+        return;
+    }
+
+    if (updated.enabled != oldEnabled)
+    {
+        if (updated.enabled)
+        {
+            app.cursorState.Resume(GetTickCount64());
+        }
+        else
+        {
+            app.cursorState.Pause();
+            app.cursorManager.RestoreAndRefresh();
+        }
+    }
+    app.settings = updated;
+    app.cursorState.SetDelay(updated.delaySeconds);
+    app.tray.SetLanguage(Localization::Resolve(updated.language));
+    app.tray.SetEnabled(app.settings.enabled);
+}
+
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
     auto* app = reinterpret_cast<AppContext*>(GetWindowLongPtrW(window, GWLP_USERDATA));
@@ -90,6 +136,9 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             return 0;
         }
         break;
+    case kShowSettingsMessage:
+        ShowSettings(*app);
+        return 0;
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
@@ -111,43 +160,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             DestroyWindow(window);
             return 0;
         case TrayController::kSettingsCommand:
-            {
-                AppSettings updated = app->settings;
-                if (app->settingsDialog.ShowModal(window, updated))
-                {
-                    const bool oldEnabled = app->settings.enabled;
-                    wchar_t executablePath[MAX_PATH]{};
-                    GetModuleFileNameW(nullptr, executablePath, ARRAYSIZE(executablePath));
-                    const bool startupChanged = updated.startupEnabled
-                        ? StartupRegistration::Enable(executablePath)
-                        : StartupRegistration::Disable();
-                    if (!startupChanged || !ConfigStore::Save(updated))
-                    {
-                        const auto language = Localization::Resolve(updated.language);
-                        MessageBoxW(window, Localization::Text(language, StringId::SaveFailed),
-                                    Localization::Text(language, StringId::AppName), MB_ICONERROR);
-                    }
-                    else
-                    {
-                        if (updated.enabled != oldEnabled)
-                        {
-                            if (updated.enabled)
-                            {
-                                app->cursorState.Resume(GetTickCount64());
-                            }
-                            else
-                            {
-                                app->cursorState.Pause();
-                                app->cursorManager.RestoreAndRefresh();
-                            }
-                        }
-                        app->settings = updated;
-                        app->cursorState.SetDelay(updated.delaySeconds);
-                        app->tray.SetLanguage(Localization::Resolve(updated.language));
-                        app->tray.SetEnabled(app->settings.enabled);
-                    }
-                }
-            }
+            ShowSettings(*app);
             return 0;
         default:
             break;
@@ -183,11 +196,19 @@ bool RegisterDispatcherClass(HINSTANCE instance)
 }
 }
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int)
 {
+    const bool interactiveLaunch = IsInteractiveLaunch(commandLine);
     InstanceLock instanceLock;
     if (!instanceLock.Acquire())
     {
+        if (interactiveLaunch)
+        {
+            if (const HWND existing = FindWindowExW(HWND_MESSAGE, nullptr, kWindowClass, nullptr))
+            {
+                PostMessageW(existing, kShowSettingsMessage, 0, 0);
+            }
+        }
         return 0;
     }
 
@@ -223,6 +244,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     {
         DestroyWindow(app.dispatcher);
         return 1;
+    }
+
+    if (interactiveLaunch)
+    {
+        PostMessageW(app.dispatcher, kShowSettingsMessage, 0, 0);
     }
 
     MSG message{};
