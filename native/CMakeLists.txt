@@ -14,6 +14,12 @@ add_executable(AutoMouseCursorHiderNative WIN32
     src/instance_lock.h
     src/tray.cpp
     src/tray.h
+    src/config_store.cpp
+    src/config_store.h
+    src/startup_registration.cpp
+    src/startup_registration.h
+    src/settings_dialog.cpp
+    src/settings_dialog.h
     src/resource.h
     src/app.rc
 )
@@ -22,7 +28,7 @@ target_compile_features(AutoMouseCursorHiderNative PRIVATE cxx_std_17)
 target_compile_definitions(AutoMouseCursorHiderNative PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(AutoMouseCursorHiderNative PRIVATE /W4 /permissive- /MT$<$<CONFIG:Debug>:d>)
 target_link_options(AutoMouseCursorHiderNative PRIVATE /SUBSYSTEM:WINDOWS)
-target_link_libraries(AutoMouseCursorHiderNative PRIVATE Shell32)
+target_link_libraries(AutoMouseCursorHiderNative PRIVATE Shell32 Comctl32)
 set_target_properties(AutoMouseCursorHiderNative PROPERTIES
     OUTPUT_NAME "AutoMouseCursorHider"
     VS_DPI_AWARE "PerMonitor"
@@ -36,3 +42,13 @@ add_executable(CursorStateTests
 target_compile_features(CursorStateTests PRIVATE cxx_std_17)
 target_compile_definitions(CursorStateTests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(CursorStateTests PRIVATE /W4 /permissive-)
+
+add_executable(ConfigStoreTests
+    tests/config_store_tests.cpp
+    src/config_store.cpp
+    src/config_store.h
+)
+target_compile_features(ConfigStoreTests PRIVATE cxx_std_17)
+target_compile_definitions(ConfigStoreTests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_compile_options(ConfigStoreTests PRIVATE /W4 /permissive-)
+target_link_libraries(ConfigStoreTests PRIVATE Shell32)

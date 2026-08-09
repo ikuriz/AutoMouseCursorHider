@@ -1,7 +1,10 @@
 #include "cursor_manager.h"
 #include "cursor_state.h"
+#include "config_store.h"
 #include "instance_lock.h"
 #include "mouse_monitor.h"
+#include "settings_dialog.h"
+#include "startup_registration.h"
 #include "tray.h"
 
 #include <windows.h>
@@ -19,6 +22,8 @@ struct AppContext
     CursorState cursorState;
     MouseMonitor mouseMonitor;
     TrayController tray;
+    SettingsDialog settingsDialog;
+    AppSettings settings;
     bool paused = false;
 };
 
@@ -100,6 +105,26 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             DestroyWindow(window);
             return 0;
         case TrayController::kSettingsCommand:
+            {
+                AppSettings updated = app->settings;
+                if (app->settingsDialog.ShowModal(window, updated))
+                {
+                    wchar_t executablePath[MAX_PATH]{};
+                    GetModuleFileNameW(nullptr, executablePath, ARRAYSIZE(executablePath));
+                    const bool startupChanged = updated.startupEnabled
+                        ? StartupRegistration::Enable(executablePath)
+                        : StartupRegistration::Disable();
+                    if (!startupChanged || !ConfigStore::Save(updated))
+                    {
+                        MessageBoxW(window, L"Unable to save settings.", L"AutoMouseCursorHider", MB_ICONERROR);
+                    }
+                    else
+                    {
+                        app->settings = updated;
+                        app->cursorState.SetDelay(updated.delaySeconds);
+                    }
+                }
+            }
             return 0;
         default:
             break;
@@ -149,7 +174,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     }
 
     AppContext app;
+    app.settings = ConfigStore::Load();
+    app.settings.startupEnabled = StartupRegistration::IsEnabled();
     app.cursorManager.RestoreAndRefresh();
+    app.cursorState.SetDelay(app.settings.delaySeconds);
     app.cursorState.OnActivity(GetTickCount64());
     app.dispatcher = CreateWindowExW(
         0, kWindowClass, L"AutoMouseCursorHider", 0, 0, 0, 0, 0,
