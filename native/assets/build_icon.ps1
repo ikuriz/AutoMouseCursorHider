@@ -47,34 +47,10 @@ try {
             $graphics.Dispose()
         }
 
-        # Write a classic Windows DIB icon frame. This is more compatible with
-        # Explorer and taskbar icon extraction than PNG-compressed ICO frames.
+        # Store each frame as a PNG payload. Windows 10/11 support PNG-compressed
+        # ICO frames, and this keeps the embedded application resource small.
         $frameStream = New-Object System.IO.MemoryStream
-        $frameWriter = New-Object System.IO.BinaryWriter($frameStream)
-        $frameWriter.Write([uint32]40)
-        $frameWriter.Write([int32]$size)
-        $frameWriter.Write([int32]($size * 2))
-        $frameWriter.Write([uint16]1)
-        $frameWriter.Write([uint16]32)
-        $frameWriter.Write([uint32]0)
-        $frameWriter.Write([uint32]($size * $size * 4))
-        $frameWriter.Write([int32]0)
-        $frameWriter.Write([int32]0)
-        $frameWriter.Write([uint32]0)
-        $frameWriter.Write([uint32]0)
-        for ($row = $size - 1; $row -ge 0; $row--) {
-            for ($column = 0; $column -lt $size; $column++) {
-                $pixel = $bitmap.GetPixel($column, $row)
-                $frameWriter.Write([byte]$pixel.B)
-                $frameWriter.Write([byte]$pixel.G)
-                $frameWriter.Write([byte]$pixel.R)
-                $frameWriter.Write([byte]$pixel.A)
-            }
-        }
-        $maskRowBytes = [int]([Math]::Ceiling($size / 32.0) * 4)
-        $mask = New-Object byte[] $maskRowBytes
-        for ($row = 0; $row -lt $size; $row++) { $frameWriter.Write($mask) }
-        $frameWriter.Dispose()
+        $bitmap.Save($frameStream, [System.Drawing.Imaging.ImageFormat]::Png)
         $frameData += ,$frameStream.ToArray()
         $frameStream.Dispose()
         $bitmap.Dispose()
