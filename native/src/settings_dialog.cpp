@@ -223,6 +223,14 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         }
         break;
     case WM_COMMAND:
+        if (LOWORD(wParam) == kStartupId && HIWORD(wParam) == BN_CLICKED)
+        {
+            const auto current = SendMessageW(dialog->_startup, BM_GETCHECK, 0, 0);
+            SendMessageW(dialog->_startup, BM_SETCHECK,
+                         current == BST_CHECKED ? BST_UNCHECKED : BST_CHECKED, 0);
+            InvalidateRect(dialog->_startup, nullptr, TRUE);
+            return 0;
+        }
         if (LOWORD(wParam) == IDOK)
         {
             double delay = 0.0;
