@@ -174,9 +174,9 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             HWND unit = CreateWindowExW(0, L"STATIC", L"seconds", WS_CHILD | WS_VISIBLE,
                                         468, 72, 110, 32, window, nullptr, nullptr, nullptr);
             HWND ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                      390, 270, 92, 42, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
+                                      350, 245, 92, 42, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
             HWND cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-                                          492, 270, 92, 42, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+                                          452, 245, 92, 42, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
             for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_startup, label, unit, ok, cancel})
             {
                 SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(dialog->_bodyFont), TRUE);
