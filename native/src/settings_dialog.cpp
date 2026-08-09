@@ -193,8 +193,9 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                                                      50, 255, 180, 34, window,
                                                      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kLanguageLabelId)), nullptr, nullptr);
             dialog->_languageCombo = CreateWindowExW(0, WC_COMBOBOXW, nullptr,
-                                                     WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_TABSTOP,
-                                                     260, 247, 270, 36, window,
+                                                     WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL |
+                                                         CBS_DROPDOWNLIST | CBS_HASSTRINGS,
+                                                     260, 247, 270, 180, window,
                                                      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kLanguageComboId)), nullptr, nullptr);
             dialog->_ok = CreateWindowExW(0, L"BUTTON", nullptr, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_TABSTOP,
                                           320, 320, 100, 44, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
@@ -212,6 +213,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             dialog->_autoHideChecked = dialog->_settings->enabled;
             dialog->_startupChecked = dialog->_settings->startupEnabled;
             dialog->_language = Localization::Resolve(dialog->_settings->language);
+            SendMessageW(dialog->_languageCombo, CB_SETMINVISIBLE, 3, 0);
             dialog->RefreshTexts();
         }
         return 0;
