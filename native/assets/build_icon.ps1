@@ -4,7 +4,7 @@ $source = Join-Path $PSScriptRoot 'app-source.png'
 $output = Join-Path $PSScriptRoot 'AutoMouseCursorHider.ico'
 $sizes = @(16, 24, 32, 48, 64, 128, 256)
 $sourceImage = [System.Drawing.Image]::FromFile($source)
-$pngImages = @()
+$frameData = @()
 
 # Detect the artwork bounds and keep a small square margin around the subject.
 $sourceBitmap = New-Object System.Drawing.Bitmap($sourceImage)
@@ -47,10 +47,36 @@ try {
             $graphics.Dispose()
         }
 
-        $stream = New-Object System.IO.MemoryStream
-        $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-        $pngImages += ,$stream.ToArray()
-        $stream.Dispose()
+        # Write a classic Windows DIB icon frame. This is more compatible with
+        # Explorer and taskbar icon extraction than PNG-compressed ICO frames.
+        $frameStream = New-Object System.IO.MemoryStream
+        $frameWriter = New-Object System.IO.BinaryWriter($frameStream)
+        $frameWriter.Write([uint32]40)
+        $frameWriter.Write([int32]$size)
+        $frameWriter.Write([int32]($size * 2))
+        $frameWriter.Write([uint16]1)
+        $frameWriter.Write([uint16]32)
+        $frameWriter.Write([uint32]0)
+        $frameWriter.Write([uint32]($size * $size * 4))
+        $frameWriter.Write([int32]0)
+        $frameWriter.Write([int32]0)
+        $frameWriter.Write([uint32]0)
+        $frameWriter.Write([uint32]0)
+        for ($row = $size - 1; $row -ge 0; $row--) {
+            for ($column = 0; $column -lt $size; $column++) {
+                $pixel = $bitmap.GetPixel($column, $row)
+                $frameWriter.Write([byte]$pixel.B)
+                $frameWriter.Write([byte]$pixel.G)
+                $frameWriter.Write([byte]$pixel.R)
+                $frameWriter.Write([byte]$pixel.A)
+            }
+        }
+        $maskRowBytes = [int]([Math]::Ceiling($size / 32.0) * 4)
+        $mask = New-Object byte[] $maskRowBytes
+        for ($row = 0; $row -lt $size; $row++) { $frameWriter.Write($mask) }
+        $frameWriter.Dispose()
+        $frameData += ,$frameStream.ToArray()
+        $frameStream.Dispose()
         $bitmap.Dispose()
     }
 }
@@ -67,7 +93,7 @@ try {
     $offset = 6 + (16 * $sizes.Count)
     for ($index = 0; $index -lt $sizes.Count; $index++) {
         $size = $sizes[$index]
-        $data = $pngImages[$index]
+        $data = $frameData[$index]
         $dimension = if ($size -eq 256) { 0 } else { $size }
         $writer.Write([byte]$dimension)
         $writer.Write([byte]$dimension)
@@ -79,7 +105,7 @@ try {
         $writer.Write([uint32]$offset)
         $offset += $data.Length
     }
-    foreach ($data in $pngImages) { $writer.Write($data) }
+    foreach ($data in $frameData) { $writer.Write($data) }
 }
 finally {
     $writer.Dispose()
