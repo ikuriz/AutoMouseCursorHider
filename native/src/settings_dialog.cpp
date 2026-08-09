@@ -14,9 +14,10 @@ constexpr int kStartupId = 5003;
 constexpr int kEnabledId = 5007;
 constexpr int kLanguageLabelId = 5008;
 constexpr int kLanguageComboId = 5009;
+constexpr int kExitId = 5010;
 }
 
-bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
+SettingsDialog::Result SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
 {
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_UPDOWN_CLASS};
     InitCommonControlsEx(&controls);
@@ -41,6 +42,7 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
 
     _settings = &settings;
     _accepted = false;
+    _exitRequested = false;
     _window = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_APPWINDOW, kClassName,
                               Localization::Text(Localization::Resolve(settings.language), StringId::WindowTitle),
                               WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
@@ -48,7 +50,7 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     if (_window == nullptr)
     {
         _settings = nullptr;
-        return false;
+        return Result::Cancel;
     }
 
     EnableWindow(owner, FALSE);
@@ -67,7 +69,11 @@ bool SettingsDialog::ShowModal(HWND owner, AppSettings& settings)
     EnableWindow(owner, TRUE);
     SetForegroundWindow(owner);
     _settings = nullptr;
-    return _accepted;
+    if (_exitRequested)
+    {
+        return Result::Exit;
+    }
+    return _accepted ? Result::Accepted : Result::Cancel;
 }
 
 void SettingsDialog::UpdateValue(HWND edit, double delta)
@@ -201,9 +207,12 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                                           320, 320, 100, 44, window, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
             dialog->_cancel = CreateWindowExW(0, L"BUTTON", nullptr, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_TABSTOP,
                                               435, 320, 100, 44, window, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+            dialog->_exit = CreateWindowExW(0, L"BUTTON", nullptr, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_TABSTOP,
+                                            50, 320, 100, 44, window,
+                                            reinterpret_cast<HMENU>(static_cast<INT_PTR>(kExitId)), nullptr, nullptr);
             for (HWND control : {dialog->_edit, dialog->_upDown, dialog->_enabled, dialog->_startup,
                                  dialog->_explanation, dialog->_label, dialog->_unit, dialog->_languageLabel,
-                                 dialog->_languageCombo, dialog->_ok, dialog->_cancel})
+                                 dialog->_languageCombo, dialog->_ok, dialog->_cancel, dialog->_exit})
             {
                 SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(dialog->_bodyFont), TRUE);
             }
@@ -294,6 +303,13 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
             DestroyWindow(window);
             return 0;
         }
+        if (LOWORD(wParam) == kExitId)
+        {
+            dialog->_accepted = false;
+            dialog->_exitRequested = true;
+            DestroyWindow(window);
+            return 0;
+        }
         break;
     case WM_CLOSE:
         DestroyWindow(window);
@@ -319,6 +335,7 @@ void SettingsDialog::RefreshTexts()
     SetWindowTextW(_languageLabel, Localization::Text(_language, StringId::Language));
     SetWindowTextW(_ok, Localization::Text(_language, StringId::Ok));
     SetWindowTextW(_cancel, Localization::Text(_language, StringId::Cancel));
+    SetWindowTextW(_exit, Localization::Text(_language, StringId::Exit));
     SendMessageW(_languageCombo, CB_RESETCONTENT, 0, 0);
     SendMessageW(_languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(Localization::Text(_language, StringId::SystemDefault)));
     SendMessageW(_languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(Localization::Text(_language, StringId::SimplifiedChinese)));

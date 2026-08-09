@@ -70,7 +70,13 @@ bool IsInteractiveLaunch(PCWSTR commandLine)
 void ShowSettings(AppContext& app)
 {
     AppSettings updated = app.settings;
-    if (!app.settingsDialog.ShowModal(app.dispatcher, updated))
+    const auto result = app.settingsDialog.ShowModal(app.dispatcher, updated);
+    if (result == SettingsDialog::Result::Exit)
+    {
+        DestroyWindow(app.dispatcher);
+        return;
+    }
+    if (result != SettingsDialog::Result::Accepted)
     {
         return;
     }
