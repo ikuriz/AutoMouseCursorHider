@@ -166,7 +166,7 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
                                                WS_CHILD | WS_VISIBLE | UDS_ARROWKEYS, 420, 72, 32, 40,
                                                window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kUpDownId)), nullptr, nullptr);
             dialog->_startup = CreateWindowExW(0, L"BUTTON", nullptr,
-                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_OWNERDRAW,
+                                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
                                                 44, 185, 360, 42, window,
                                                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kStartupId)), nullptr, nullptr);
             HWND explanation = CreateWindowExW(0, L"STATIC", L"The mouse cursor hides after inactivity.", WS_CHILD | WS_VISIBLE,
@@ -223,14 +223,6 @@ LRESULT CALLBACK SettingsDialog::WindowProc(HWND window, UINT message, WPARAM wP
         }
         break;
     case WM_COMMAND:
-        if (LOWORD(wParam) == kStartupId && HIWORD(wParam) == BN_CLICKED)
-        {
-            const auto current = SendMessageW(dialog->_startup, BM_GETCHECK, 0, 0);
-            SendMessageW(dialog->_startup, BM_SETCHECK,
-                         current == BST_CHECKED ? BST_UNCHECKED : BST_CHECKED, 0);
-            InvalidateRect(dialog->_startup, nullptr, TRUE);
-            return 0;
-        }
         if (LOWORD(wParam) == IDOK)
         {
             double delay = 0.0;
