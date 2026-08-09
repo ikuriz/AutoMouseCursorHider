@@ -8,6 +8,8 @@ add_executable(AutoMouseCursorHiderNative WIN32
     src/cursor_manager.h
     src/cursor_state.cpp
     src/cursor_state.h
+    src/mouse_monitor.cpp
+    src/mouse_monitor.h
     src/resource.h
     src/app.rc
 )
