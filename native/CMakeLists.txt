@@ -20,6 +20,8 @@ add_executable(AutoMouseCursorHiderNative WIN32
     src/startup_registration.h
     src/settings_dialog.cpp
     src/settings_dialog.h
+    src/delay_step.cpp
+    src/delay_step.h
     src/resource.h
     src/app.rc
     src/app.manifest
@@ -47,6 +49,8 @@ add_executable(ConfigStoreTests
     tests/config_store_tests.cpp
     src/config_store.cpp
     src/config_store.h
+    src/delay_step.cpp
+    src/delay_step.h
 )
 target_compile_features(ConfigStoreTests PRIVATE cxx_std_17)
 target_compile_definitions(ConfigStoreTests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)

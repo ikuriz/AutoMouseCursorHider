@@ -70,11 +70,15 @@ void SettingsDialog::UpdateValue(HWND edit, double delta)
 {
     double value = 3.0;
     ReadValue(edit, value);
-    value = std::clamp(value + delta, 0.1, 3600.0);
-    value = std::round(value * 10.0) / 10.0;
+    value = StepDelayValue(value, delta > 0.0 ? 1 : -1);
     std::wostringstream text;
     text << std::fixed << std::setprecision(1) << value;
     SetWindowTextW(edit, text.str().c_str());
+}
+
+double SettingsDialog::StepDelayValue(double currentSeconds, int direction)
+{
+    return StepDelay(currentSeconds, direction);
 }
 
 bool SettingsDialog::ReadValue(HWND edit, double& value)
