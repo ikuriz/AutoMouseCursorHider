@@ -8,7 +8,14 @@
 class SettingsDialog
 {
 public:
-    bool ShowModal(HWND owner, AppSettings& settings);
+    enum class Result
+    {
+        Cancel,
+        Accepted,
+        Exit
+    };
+
+    Result ShowModal(HWND owner, AppSettings& settings);
     static double StepDelayValue(double currentSeconds, int direction);
 
 private:
@@ -30,10 +37,12 @@ private:
     HWND _languageCombo = nullptr;
     HWND _ok = nullptr;
     HWND _cancel = nullptr;
+    HWND _exit = nullptr;
     HFONT _bodyFont = nullptr;
     AppSettings* _settings = nullptr;
     bool _autoHideChecked = true;
     bool _startupChecked = false;
+    bool _exitRequested = false;
     Language _language = Language::English;
     bool _accepted = false;
 };

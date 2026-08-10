@@ -1,3 +1,3 @@
 #pragma once
 
-#define IDI_APP 102
+#define IDI_APP 103

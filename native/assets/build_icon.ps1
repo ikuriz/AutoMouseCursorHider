@@ -4,7 +4,7 @@ $source = Join-Path $PSScriptRoot 'app-source.png'
 $output = Join-Path $PSScriptRoot 'AutoMouseCursorHider.ico'
 $sizes = @(16, 24, 32, 48, 64, 128, 256)
 $sourceImage = [System.Drawing.Image]::FromFile($source)
-$pngImages = @()
+$frameData = @()
 
 # Detect the artwork bounds and keep a small square margin around the subject.
 $sourceBitmap = New-Object System.Drawing.Bitmap($sourceImage)
@@ -47,10 +47,12 @@ try {
             $graphics.Dispose()
         }
 
-        $stream = New-Object System.IO.MemoryStream
-        $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-        $pngImages += ,$stream.ToArray()
-        $stream.Dispose()
+        # Store each frame as a PNG payload. Windows 10/11 support PNG-compressed
+        # ICO frames, and this keeps the embedded application resource small.
+        $frameStream = New-Object System.IO.MemoryStream
+        $bitmap.Save($frameStream, [System.Drawing.Imaging.ImageFormat]::Png)
+        $frameData += ,$frameStream.ToArray()
+        $frameStream.Dispose()
         $bitmap.Dispose()
     }
 }
@@ -67,7 +69,7 @@ try {
     $offset = 6 + (16 * $sizes.Count)
     for ($index = 0; $index -lt $sizes.Count; $index++) {
         $size = $sizes[$index]
-        $data = $pngImages[$index]
+        $data = $frameData[$index]
         $dimension = if ($size -eq 256) { 0 } else { $size }
         $writer.Write([byte]$dimension)
         $writer.Write([byte]$dimension)
@@ -79,7 +81,7 @@ try {
         $writer.Write([uint32]$offset)
         $offset += $data.Length
     }
-    foreach ($data in $pngImages) { $writer.Write($data) }
+    foreach ($data in $frameData) { $writer.Write($data) }
 }
 finally {
     $writer.Dispose()

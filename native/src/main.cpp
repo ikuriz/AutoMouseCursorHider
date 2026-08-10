@@ -9,6 +9,8 @@
 
 #include <windows.h>
 
+#include <cwchar>
+
 namespace
 {
 constexpr wchar_t kWindowClass[] = L"AutoMouseCursorHider.Native.Dispatcher.v2";
@@ -25,7 +27,30 @@ struct AppContext
     TrayController tray;
     SettingsDialog settingsDialog;
     AppSettings settings;
+    bool secureDesktopActive = false;
 };
+
+bool IsSecureInputDesktop()
+{
+    HDESK desktop = OpenInputDesktop(0, FALSE, DESKTOP_READOBJECTS);
+    if (desktop == nullptr)
+    {
+        // A desktop that cannot be opened is not safe to treat as the user's
+        // interactive desktop. Fail safe: keep the cursor visible.
+        return true;
+    }
+
+    wchar_t name[64]{};
+    DWORD required = 0;
+    const bool read = GetUserObjectInformationW(desktop, UOI_NAME, name, sizeof(name), &required) != FALSE;
+    CloseDesktop(desktop);
+    if (!read)
+    {
+        return true;
+    }
+
+    return _wcsicmp(name, L"Default") != 0;
+}
 
 void HandleActivity(AppContext& app)
 {
@@ -41,6 +66,33 @@ void HandleActivity(AppContext& app)
 void HandleTimer(AppContext& app)
 {
     const auto now = GetTickCount64();
+
+    const bool secureDesktop = IsSecureInputDesktop();
+    if (secureDesktop)
+    {
+        if (!app.secureDesktopActive)
+        {
+            app.secureDesktopActive = true;
+            app.cursorState.Pause();
+            app.cursorManager.RestoreAndRefresh();
+        }
+        return;
+    }
+
+    if (app.secureDesktopActive)
+    {
+        app.secureDesktopActive = false;
+        if (app.settings.enabled)
+        {
+            app.cursorState.Resume(now);
+        }
+        else
+        {
+            app.cursorState.Pause();
+        }
+        app.cursorState.OnActivity(now);
+    }
+
     if (!app.settings.enabled)
     {
         app.cursorManager.RestoreAndRefresh();
@@ -70,7 +122,13 @@ bool IsInteractiveLaunch(PCWSTR commandLine)
 void ShowSettings(AppContext& app)
 {
     AppSettings updated = app.settings;
-    if (!app.settingsDialog.ShowModal(app.dispatcher, updated))
+    const auto result = app.settingsDialog.ShowModal(app.dispatcher, updated);
+    if (result == SettingsDialog::Result::Exit)
+    {
+        DestroyWindow(app.dispatcher);
+        return;
+    }
+    if (result != SettingsDialog::Result::Accepted)
     {
         return;
     }
