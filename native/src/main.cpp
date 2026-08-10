@@ -9,6 +9,8 @@
 
 #include <windows.h>
 
+#include <cwchar>
+
 namespace
 {
 constexpr wchar_t kWindowClass[] = L"AutoMouseCursorHider.Native.Dispatcher.v2";
@@ -25,7 +27,28 @@ struct AppContext
     TrayController tray;
     SettingsDialog settingsDialog;
     AppSettings settings;
+    bool secureDesktopActive = false;
 };
+
+bool IsSecureInputDesktop()
+{
+    HDESK desktop = OpenInputDesktop(0, FALSE, DESKTOP_READOBJECTS);
+    if (desktop == nullptr)
+    {
+        return false;
+    }
+
+    wchar_t name[64]{};
+    DWORD required = 0;
+    const bool read = GetUserObjectInformationW(desktop, UOI_NAME, name, sizeof(name), &required) != FALSE;
+    CloseDesktop(desktop);
+    if (!read)
+    {
+        return false;
+    }
+
+    return _wcsicmp(name, L"Winlogon") == 0 || _wcsicmp(name, L"Screen-saver") == 0;
+}
 
 void HandleActivity(AppContext& app)
 {
@@ -41,6 +64,33 @@ void HandleActivity(AppContext& app)
 void HandleTimer(AppContext& app)
 {
     const auto now = GetTickCount64();
+
+    const bool secureDesktop = IsSecureInputDesktop();
+    if (secureDesktop)
+    {
+        if (!app.secureDesktopActive)
+        {
+            app.secureDesktopActive = true;
+            app.cursorState.Pause();
+            app.cursorManager.RestoreAndRefresh();
+        }
+        return;
+    }
+
+    if (app.secureDesktopActive)
+    {
+        app.secureDesktopActive = false;
+        if (app.settings.enabled)
+        {
+            app.cursorState.Resume(now);
+        }
+        else
+        {
+            app.cursorState.Pause();
+        }
+        app.cursorState.OnActivity(now);
+    }
+
     if (!app.settings.enabled)
     {
         app.cursorManager.RestoreAndRefresh();
