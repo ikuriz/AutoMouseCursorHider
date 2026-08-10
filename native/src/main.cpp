@@ -35,7 +35,9 @@ bool IsSecureInputDesktop()
     HDESK desktop = OpenInputDesktop(0, FALSE, DESKTOP_READOBJECTS);
     if (desktop == nullptr)
     {
-        return false;
+        // A desktop that cannot be opened is not safe to treat as the user's
+        // interactive desktop. Fail safe: keep the cursor visible.
+        return true;
     }
 
     wchar_t name[64]{};
@@ -44,10 +46,10 @@ bool IsSecureInputDesktop()
     CloseDesktop(desktop);
     if (!read)
     {
-        return false;
+        return true;
     }
 
-    return _wcsicmp(name, L"Winlogon") == 0 || _wcsicmp(name, L"Screen-saver") == 0;
+    return _wcsicmp(name, L"Default") != 0;
 }
 
 void HandleActivity(AppContext& app)
