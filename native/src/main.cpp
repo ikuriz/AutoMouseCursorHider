@@ -10,6 +10,7 @@
 #include <windows.h>
 
 #include <cwchar>
+#include <vector>
 
 namespace
 {
@@ -52,6 +53,69 @@ bool IsSecureInputDesktop()
     return _wcsicmp(name, L"Default") != 0;
 }
 
+DWORD GetProcessIntegrityRid(HANDLE process)
+{
+    HANDLE token = nullptr;
+    if (!OpenProcessToken(process, TOKEN_QUERY, &token))
+    {
+        return 0;
+    }
+
+    DWORD size = 0;
+    GetTokenInformation(token, TokenIntegrityLevel, nullptr, 0, &size);
+    std::vector<BYTE> buffer(size);
+    DWORD rid = 0;
+    if (size != 0 && GetTokenInformation(token, TokenIntegrityLevel, buffer.data(), size, &size))
+    {
+        const auto* label = reinterpret_cast<const TOKEN_MANDATORY_LABEL*>(buffer.data());
+        if (label->Label.Sid != nullptr)
+        {
+            rid = *GetSidSubAuthority(label->Label.Sid,
+                static_cast<DWORD>(*GetSidSubAuthorityCount(label->Label.Sid) - 1));
+        }
+    }
+    CloseHandle(token);
+    return rid;
+}
+
+bool IsProtectedForegroundWindow()
+{
+    const HWND foreground = GetForegroundWindow();
+    if (foreground == nullptr)
+    {
+        return false;
+    }
+
+    DWORD processId = 0;
+    GetWindowThreadProcessId(foreground, &processId);
+    if (processId == 0 || processId == GetCurrentProcessId())
+    {
+        return false;
+    }
+
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+    if (process == nullptr)
+    {
+        return false;
+    }
+
+    wchar_t imagePath[MAX_PATH]{};
+    DWORD imageLength = ARRAYSIZE(imagePath);
+    const bool gotImage = QueryFullProcessImageNameW(process, 0, imagePath, &imageLength) != FALSE;
+    bool isTaskManager = false;
+    if (gotImage)
+    {
+        const wchar_t* fileName = wcsrchr(imagePath, L'\\');
+        fileName = fileName == nullptr ? imagePath : fileName + 1;
+        isTaskManager = _wcsicmp(fileName, L"Taskmgr.exe") == 0;
+    }
+
+    const DWORD foregroundRid = GetProcessIntegrityRid(process);
+    static const DWORD selfRid = GetProcessIntegrityRid(GetCurrentProcess());
+    CloseHandle(process);
+    return isTaskManager || (foregroundRid != 0 && selfRid != 0 && foregroundRid > selfRid);
+}
+
 void HandleActivity(AppContext& app)
 {
     app.mouseMonitor.AcknowledgeActivity();
@@ -67,8 +131,8 @@ void HandleTimer(AppContext& app)
 {
     const auto now = GetTickCount64();
 
-    const bool secureDesktop = IsSecureInputDesktop();
-    if (secureDesktop)
+    const bool protectedInteraction = IsSecureInputDesktop() || IsProtectedForegroundWindow();
+    if (protectedInteraction)
     {
         if (!app.secureDesktopActive)
         {
