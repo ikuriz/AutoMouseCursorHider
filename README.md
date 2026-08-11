@@ -10,7 +10,7 @@ No installer. No .NET runtime. No administrator privileges. Just download one sm
 
 ## Why AutoMouseCursorHider?
 
-Designed for reading, writing, presentations, video playback, and any workspace where a stationary cursor gets in the way. It uses native Win32 APIs, stays out of your way, and restores the cursor safely when you move the mouse or exit the app.
+Designed for reading, writing, presentations, video playback, and any workspace where a stationary cursor gets in the way. It stays out of your way and restores the cursor safely when you move the mouse or exit the app.
 
 ## Features
 
@@ -48,6 +48,10 @@ Windows SmartScreen may show a warning because the executable is not commerciall
 - 64-bit x64 system
 - No .NET or Visual C++ Runtime required
 - No administrator privileges required
+
+## Technical details
+
+The application is built with native Windows (Win32) APIs. This is an implementation detail — it runs normally on supported Windows 10 and Windows 11 x64 systems and does not require a separate runtime.
 
 ## Build (developers)
 
