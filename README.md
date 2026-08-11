@@ -38,7 +38,7 @@ Designed for reading, writing, presentations, video playback, and any workspace 
 
 1. Download **[AutoMouseCursorHider.exe](../../releases/latest)** from Releases.
 2. Double-click the file — no installation is required.
-3. Find the icon in the **system tray (notification area)** and right-click it to configure, pause, resume, or exit.
+3. Find the icon in the system tray (notification area) and right-click it to configure, pause, resume, or exit.
 
 Windows SmartScreen may show a warning because the executable is not commercially code-signed. If the file came from this repository, choose **Run anyway**.
 
